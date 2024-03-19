@@ -1,0 +1,29 @@
+.draggable{
+  position: absolute;
+}
+
+.dragging{
+  cursor: move !important;
+}
+
+.rectangle {
+  border: 1px solid;
+  width: 100px;
+  height: 60px;
+}
+
+.min-rectangle {
+  border: 1px solid;
+  width: 50px;
+  height: 30px;
+}
+
+.resizable {
+  resize: both;
+  overflow: auto;
+}
+
+.getItem:hover {
+  background: grey;
+  opacity: 0.5;
+}
