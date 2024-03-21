@@ -1,42 +1,71 @@
-let drag;
-let dragHandle;
-const lastPosition = {};
+interact('.resize-drag')
+  .resizable({
+    // resize from all edges and corners
+    edges: { left: true, right: true, bottom: true, top: true },
 
-setupDraggable();
+    listeners: {
+      move (event) {
+        var target = event.target
+        var x = (parseFloat(target.getAttribute('data-x')) || 0)
+        var y = (parseFloat(target.getAttribute('data-y')) || 0)
 
-function setupDraggable(){
-  dragHandle = document.querySelector('#diagramm-element');
-  dragHandle.addEventListener('mousedown', dragStart);
-  dragHandle.addEventListener('mouseup', dragEnd);
-  dragHandle.addEventListener('mouseout', dragEnd);
-}
+        // update the element's style
+        target.style.width = event.rect.width + 'px'
+        target.style.height = event.rect.height + 'px'
 
-function dragStart(event){
-  drag = getDraggableAncestor(event.target);
-  lastPosition.left = event.target.clientX;
-  lastPosition.top = event.target.clientY;
-  dragHandle.classList.add('dragging');
-  dragHandle.addEventListener('mousemove', dragMove);
-}
+        // translate when resizing from top or left edges
+        x += event.deltaRect.left
+        y += event.deltaRect.top
 
-function dragMove(event){
-  const dragElRect = drag.getBoundingClientRect();
-  const newLeft = dragElRect.left + event.clientX - lastPosition.left;
-  const newTop = dragElRect.top + event.clientY - lastPosition.top;
-  drag.style.setProperty('left', `${newLeft}px`);
-  drag.style.setProperty('top', `${newTop}px`);
-  lastPosition.left = event.clientX;
-  lastPosition.top = event.clientY;
-  window.getSelection().removeAllRanges();
-}
+        target.style.transform = 'translate(' + x + 'px,' + y + 'px)'
 
-function getDraggableAncestor(element){
-  if (element.getAttribute('data-draggable')) return element;
-  return getDraggableAncestor(element.parentElement);
-}
+        target.setAttribute('data-x', x)
+        target.setAttribute('data-y', y)
+      }
+    },
+    modifiers: [
+      // keep the edges inside the parent
+      interact.modifiers.restrictEdges({
+        outer: 'parent'
+      }),
 
-function dragEnd(){
-  dragHandle.classList.remove('dragging');
-  dragHandle.removeEventListener('mousemove',dragMove);
-  drag = null;
+      // minimum size
+      interact.modifiers.restrictSize({
+        min: { width: 150, height: 70 }
+      })
+    ],
+
+    inertia: true
+  })
+  .draggable({
+    // enable inertial throwing
+    inertia: true,
+    // keep the element within the area of it's parent
+    modifiers: [
+      interact.modifiers.restrictRect({
+        restriction: 'parent',
+        endOnly: true
+      })
+    ],
+    // enable autoScroll
+    autoScroll: true,
+
+    listeners: {
+      // call this function on every dragmove event
+      move: dragMoveListener
+    }
+  })
+
+function dragMoveListener (event) {
+  var target = event.target
+  // keep the dragged position in the data-x/data-y attributes
+  var x = (parseFloat(target.getAttribute('data-x')) || 0) + event.dx
+  var y = (parseFloat(target.getAttribute('data-y')) || 0) + event.dy
+
+  // translate the element
+  target.style.transform = 'translate(' + x + 'px, ' + y + 'px)'
+
+  // update the posiion attributes
+  target.setAttribute('data-x', x)
+  target.setAttribute('data-y', y)
 }

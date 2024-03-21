@@ -13,27 +13,21 @@
       integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM"
       crossorigin="anonymous"
     ></script>
+    <!-- libabry Interact for resizing and dragging -->
+    <script src="https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js"></script>
     <script type="text/javascript" src="./scripts/graph.js"></script>
+    <script type="text/javascript" src="./scripts/drag.js"></script>
     <link rel="stylesheet" href="style/styles.css" />
   </head>
 
   <body>
     <div class="row">
       <div class="col-3">
-        <p>Figures</p>
-        <div
-          class="box draggable"
-          data-draggable="true"
-          data-resizable="true"
-          id="wrap"
-        >
-          <textarea
-            class="rectangle resizable text-center"
-            id="diagramm-element"
-          ></textarea>
-        </div>
+        
       </div>
-      <div class="col-3" id="graphContainer"></div>
+      <div class="col vh-100">
+        <div class="resize-drag">Resizable</div>
+      </div>
     </div>
   </body>
 </html>
