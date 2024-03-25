@@ -15,8 +15,9 @@
     ></script>
     <!-- libabry Interact for resizing and dragging -->
     <script src="https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js"></script>
-    <script type="text/javascript" src="./scripts/graph.js"></script>
+    <script type="text/javascript" src="./scripts/choose.js"></script>
     <script type="text/javascript" src="./scripts/drag.js"></script>
+    <script type="text/javascript" src="./scripts/writingInside.js"></script>
     <link rel="stylesheet" href="style/styles.css" />
   </head>
 
@@ -26,7 +27,7 @@
         
       </div>
       <div class="col vh-100">
-        <div class="resize-drag">Resizable</div>
+        <div id="square" class="resize-drag" ondblclick="writingInside(id)" contenteditable="false">Resizable</div>
       </div>
     </div>
   </body>
