@@ -31,7 +31,7 @@ interact(".resize-drag")
 
       // minimum size
       interact.modifiers.restrictSize({
-        min: { width: 150, height: 70 },
+        min: { width: 100, height: 100 },
       }),
     ],
 
