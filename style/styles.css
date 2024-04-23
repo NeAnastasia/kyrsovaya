@@ -7,3 +7,8 @@ html, body {
   stroke: blue;
   stroke-width: 5;
 }
+
+.text {
+  position: absolute;
+  font-size: 20px;
+}
