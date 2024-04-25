@@ -8,9 +8,7 @@ function createDefaultClass(){
     el.appendChild(path)
     el.setAttribute("pointer-events", "all")
     const text = document.createElement("div")
-    text.setAttribute("class", "text")
-    text.setAttribute("id", "text")
-    text.setAttribute("ondblclick", "writingInside(id)")
+    text.addEventListener("dblclick", writingInside)
     text.innerHTML = "Заголовок";
     document.getElementById("text-container").appendChild(text);
     const drag = new Draggable(el, text, 150, 150, 200, 200)
@@ -24,3 +22,4 @@ function createDefaultClass(){
     const svg = document.getElementsByTagNameNS("http://www.w3.org/2000/svg", "svg")[1]
     svg.addEventListener("mousedown", ()=>{Selection.singleton.clear()})
   })
+  
