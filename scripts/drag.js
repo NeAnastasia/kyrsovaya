@@ -1,5 +1,5 @@
 class Draggable {
-  constructor(el, text, x, y, width, height) {
+  constructor(el, text, x, y, width, height, circles) {
     this.parentSel = null;
     this.text = text;
     this.el = el;
@@ -9,11 +9,19 @@ class Draggable {
     this.height = height;
     this.headerPadding = 100;
     this.fontSize = 20;
+    this.circles = [
+      new Circle(this.x + this.width, this.y + this.height / 2, 10),
+      new Circle(this.x, this.y + this.height / 2, 10),
+      new Circle(this.x + this.width / 2, this.y, 10),
+      new Circle(this.x + this.width / 2, this.y + this.height, 10)
+    ];
     this.startingPos = null;
     this.#initEvents();
   }
   #initEvents() {
     this.el.addEventListener("mousedown", this.mousedown.bind(this));
+    this.el.addEventListener("mouseenter", this.mouseenter.bind(this));
+    this.el.addEventListener("mouseleave", this.mouseleave.bind(this));
     window.addEventListener("mousemove", this.move.bind(this));
     window.addEventListener("mouseup", this.mouseup.bind(this));
   }
@@ -63,13 +71,22 @@ class Draggable {
       this.parentSel.stopAll(this, e);
     }
   }
+  mouseenter(e, ignore) {
+    for (var i = 0; i < this.circles.length; i++) {
+      this.el.parentElement.appendChild(this.circles[i].element);
+    }
+  }
+  mouseleave(e, ignore) {
+    console.log("AAAA");
+  }
   translate(dx, dy) {
     this.x = this.elPos[0] + dx;
     this.y = this.elPos[1] + dy;
     this.update();
   }
   update() {
-    this.text.style.left = this.x + this.width + this.headerPadding / 2 + "px";
+    this.text.style.left =
+      this.x + this.width + this.headerPadding / 2 + 150 + "px";
     this.text.style.top = this.y + this.headerPadding / 2 + "px";
     this.el.children[0].setAttribute(
       "d",
@@ -81,5 +98,10 @@ class Draggable {
         this.y + this.headerPadding
       }`
     );
+
+    this.circles[0].element.parentNode.removeChild(this.circles[0].element)
+    // for(var i = 0; i<this.circles.length; i++){
+    //   this.circles[i].update(100);
+    // }
   }
 }
