@@ -1,0 +1,21 @@
+:root{
+    --border-color: black;
+    --background-color: white;
+    --border-width: 2%;
+}
+
+.node.selected{
+    --border-color: blue;
+}
+
+/*Тут фигуры*/
+
+.node.rhombus{
+  background-size:50% 50%;
+  background-repeat:no-repeat;
+  border: none;
+  border-radius: 0;
+}
+.node.rhombus>.node-inner{
+    padding: 1rem;
+}
