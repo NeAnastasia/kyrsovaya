@@ -33,7 +33,6 @@ export class Node{
         this.textEl.addEventListener("focusout", (e)=>{
             this.onRename(e)
             $(this.textEl).attr("contenteditable", false)
-            
         })
         this.update();
     }

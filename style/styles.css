@@ -20,6 +20,7 @@ svg.node-connection {
   top: 0;
   left: 0;
   overflow: visible;
+  pointer-events: none;
 }
 
 svg.node-connection > path {
@@ -84,4 +85,13 @@ svg.node-connection > path {
   top: 0;
   right: calc(-1 * var(--ssize));
   bottom: 0;
+}
+
+.menu{
+  background-color: rgb(224, 224, 224);
+  position: absolute;
+}
+
+.arrow{
+  pointer-events:all;
 }
