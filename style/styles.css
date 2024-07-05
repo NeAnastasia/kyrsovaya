@@ -1,97 +1,184 @@
 :root {
-  --ssize: 20px;
+    --ssize: 20px;
 }
 
 html,
 body {
-  margin: 0;
-  width: 100%;
-  height: 100%;
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
 }
 
 #view {
-  overflow: hidden;
-  width: 100vw;
-  height: 100vh;
+    overflow: hidden;
+    width: 100vw;
+    height: 100vh;
+}
+
+#view-area{
+    height: 100%;
 }
 
 svg.node-connection {
-  position: absolute;
-  top: 0;
-  left: 0;
-  overflow: visible;
-  pointer-events: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    overflow: visible;
+    pointer-events: none;
 }
 
-svg.node-connection > path {
-  stroke: black;
-  stroke-width: 2px;
+svg.node-connection>path {
+    stroke: black;
+    stroke-width: 2px;
 }
 
 .node {
-  position: absolute;
-  font-size: 2rem;
-  cursor: default;
-  border: 1px solid black;
-  padding: 0.5rem;
+    position: absolute;
+    font-size: 2rem;
+    cursor: default;
 }
 
-.node.selected {
-  border: 2px solid blue;
+.node-text, .node-text-content{
+    min-width: 40px;
+    min-height: 40px;
+    text-align: center;
 }
+
+.node.object .node-text{
+    font-size: 1.5rem;
+}
+
+.node svg{
+    overflow: visible;
+    pointer-events: none;
+}
+
+.node .node-draw{
+    width: 0;
+    height: 0;
+}
+
+.node svg line{
+    stroke: black;
+}
+
 
 .node-connection-socket {
-  width: var(--ssize);
-  height: var(--ssize);
-  background-color: rgb(99, 179, 192);
-  border-radius: 50%;
-  position: absolute;
-  margin: auto;
-  cursor: pointer;
-  opacity: 0;
+    width: var(--ssize);
+    height: var(--ssize);
+    background-color: rgb(99, 179, 192);
+    border-radius: 50%;
+    position: absolute;
+    margin: auto;
+    cursor: pointer;
+    opacity: 0;
 }
 
 .node-connection-socket.connected {
-  opacity: 1;
+    opacity: 1;
 }
 
-.node:hover > .node-connection-socket {
-  opacity: 1;
+.node:hover>.node-connection-socket {
+    opacity: 1;
 }
 
-.node.selected > .node-connection-socket {
-  opacity: 1;
+.node.selected>.node-connection-socket {
+    opacity: 1;
 }
 
 .node-connection-socket.up {
-  top: calc(-1 * var(--ssize));
-  left: 0;
-  right: 0;
+    top: calc(-1 * var(--ssize));
+    left: 0;
+    right: 0;
 }
 
 .node-connection-socket.down {
-  bottom: calc(-1 * var(--ssize));
-  left: 0;
-  right: 0;
+    bottom: calc(-1 * var(--ssize));
+    left: 0;
+    right: 0;
 }
 
 .node-connection-socket.left {
-  top: 0;
-  left: calc(-1 * var(--ssize));
-  bottom: 0;
+    top: 0;
+    left: calc(-1 * var(--ssize));
+    bottom: 0;
 }
 
 .node-connection-socket.right {
-  top: 0;
-  right: calc(-1 * var(--ssize));
-  bottom: 0;
+    top: 0;
+    right: calc(-1 * var(--ssize));
+    bottom: 0;
 }
 
-.menu{
-  background-color: rgb(224, 224, 224);
-  position: absolute;
+.menu {
+    background-color: rgb(224, 224, 224);
+    position: absolute;
 }
 
-.arrow{
-  pointer-events:all;
+.arrow {
+    pointer-events: all;
+}
+
+#context-menu {
+    position: fixed;
+    top: 0;
+    left: 0;
+    border: 1px solid black;
+    height: 100%;
+    padding: 20px;
+    width: 350px;
+    background-color: white;
+}
+.context-menu-title{
+    text-align: center;
+    font-size: 26px;
+    cursor: default;
+    margin: 10px;
+}
+
+.context-item{
+    width: min-content;
+    border: 1px solid black;
+    padding: 5px;
+    border-radius: 10px;
+    cursor: pointer;
+
+}
+
+.context-menu-container{
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.context-item-name{
+    user-select: none;
+    text-align: center;
+}
+
+.node textarea{
+    resize: none;
+    overflow: hidden;
+    width: 100%;
+    vertical-align: bottom;
+    display: block;
+    height: 100%;
+    cursor: inherit;
+}
+
+.node.class textarea{
+    text-align: left;
+}
+
+.node-inner{
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-content: center;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: nowrap;
 }

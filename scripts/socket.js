@@ -2,6 +2,7 @@ import { Connector } from "./connector.js";
 
 export class Socket{
     constructor(el, parent = null, type="up"){
+        if(el == null){return}
         this.parent = parent;
         this.el = el;
         this.type = type
@@ -36,23 +37,15 @@ export class Socket{
         return [this.parent.pos[0] + this.el.offsetLeft + this.el.offsetWidth/2, this.parent.pos[1] + this.el.offsetTop + this.el.offsetHeight/2]
     }
     update(){
+        if(this.el == null){return}
         for(const item of this.connections){
             item.update();
         }
-        // if(this.connections.length > 0){
-        //     if(!this.el.classList.contains("connected")){
-        //         this.el.classList.add("connected")
-        //     }
-        // }
-        // else{
-        //     if(this.el.classList.contains("connected")){
-        //         this.el.classList.remove("connected")
-        //     }
-        // }
     }
     destroy(){
-        for(let i = this.connections.length - 1; i >=0; i++){
-            this.connections[i].destroy();
+        const conns = [...this.connections]
+        for(const c of conns){
+            c.destroy()
         }
     }
 }

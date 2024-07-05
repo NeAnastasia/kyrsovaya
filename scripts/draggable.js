@@ -11,28 +11,22 @@ export class Draggable{
         this.mm = onMouseMove;
     }
     down(e){
-        e.preventDefault();
         e.stopPropagation();
-        
         if(this.sp != null){
-            console.log("Already downed")
             return;
         }
         this._sp = [e.pageX, e.pageY]
         this.md(e, this._sp);
     }
     up(e){
-        e.preventDefault();
         e.stopPropagation();
         if(this._sp == null){
-            console.log("Not downed")
             return;
         }
         this._sp = null;
         this.mu(e)
     }
     move(e){
-        e.preventDefault();
         e.stopPropagation();
         if(this._sp == null){
             return;
