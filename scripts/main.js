@@ -2,6 +2,7 @@ import {Node} from "./node.js"
 import { View } from "./view.js";
 import { Selection } from "./selection.js";
 import { ContextMenu, ContextItem } from "./context.js";
+import { ArrowType } from "./enum/ArrowType.js";
 
 
 !function(items){
@@ -54,13 +55,14 @@ $(document).ready(function(e){
                     "type": "up",
                     "id": 0
                 },
-                "arrowType": "<polyline points=\"0 0, 10 3.5, 0 7\" fill=\"none\" stroke=\"#000\" />"
+                "arrowTypeEnd": ArrowType.DefaultEnd,
+                "arrowTypeStart": ArrowType.None
             }
         ]
     })
     window.addEventListener("viewupdate", (e)=>{
         console.log("Что-то изменилось")
         const data = view.toJSON()
-    
+
     })
 })

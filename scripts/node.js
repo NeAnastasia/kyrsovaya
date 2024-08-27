@@ -45,9 +45,17 @@ export class Node{
             
         this.sockets = {
             "up":new Socket($(el).find(".node-connection-socket.up")[0], this, "up"),
+            "upright":new Socket($(el).find(".node-connection-socket.upright")[0], this, "upright"),
+            "upleft":new Socket($(el).find(".node-connection-socket.upleft")[0], this, "upleft"),
             "left":new Socket($(el).find(".node-connection-socket.left")[0], this, "left"),
+            "leftup":new Socket($(el).find(".node-connection-socket.leftup")[0], this, "leftup"),
+            "leftdown":new Socket($(el).find(".node-connection-socket.leftdown")[0], this, "leftdown"),
             "down":new Socket($(el).find(".node-connection-socket.down")[0], this, "down"),
+            "downright":new Socket($(el).find(".node-connection-socket.downright")[0], this, "downright"),
+            "downleft":new Socket($(el).find(".node-connection-socket.downleft")[0], this, "downleft"),
             "right":new Socket($(el).find(".node-connection-socket.right")[0], this, "right"),
+            "rightup":new Socket($(el).find(".node-connection-socket.rightup")[0], this, "rightup"),
+            "rightdown":new Socket($(el).find(".node-connection-socket.rightdown")[0], this, "rightdown"),
         }
         
         
