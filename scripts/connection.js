@@ -43,17 +43,19 @@ export class Connection {
         this.arrowTypeEnd +
         `</marker>
       </defs>
-      <line x1="0" y1="0" x2="0" y2="0" stroke-width="2" marker-end="" marker-start="" stroke-dasharray="" class="arrow"/>
+      <line x1="0" y1="0" x2="0" y2="0" stroke-width="2" marker-end="" marker-start="" stroke-dasharray=""/>
+      <line x1="0" y1="0" x2="0" y2="0" stroke-width="20" class="arrow"/>
         </svg>`
     ).appendTo("#view-area")[0];
     this.lineEl = $(this.el).find("line")[0];
+    this.lineClickEl = $(this.el).find("line")[1];
     this.markerELStart = $(this.el).find("marker")[0];
     $(this.markerELStart).attr("id", `arrowhead-${this.id}-start`);
     this.markerELEnd = $(this.el).find("marker")[1];
     $(this.markerELEnd).attr("id", `arrowhead-${this.id}-end`);
     $(this.lineEl).attr("marker-end", `url(#arrowhead-${this.id}-end)`);
     $(this.lineEl).attr("marker-start", `url(#arrowhead-${this.id}-start)`);
-    this.lineEl.addEventListener("click", (e) => {
+    this.lineClickEl.addEventListener("click", (e) => {
       e.stopPropagation();
       const r = View.singleton.el.getBoundingClientRect();
       console.log(View.singleton.el);
@@ -128,6 +130,10 @@ export class Connection {
     $(this.lineEl).attr("y1", `${inSockPos[1]}`);
     $(this.lineEl).attr("x2", `${outSockPos[0]}`);
     $(this.lineEl).attr("y2", `${outSockPos[1]}`);
+    $(this.lineClickEl).attr("x1", `${inSockPos[0]}`);
+    $(this.lineClickEl).attr("y1", `${inSockPos[1]}`);
+    $(this.lineClickEl).attr("x2", `${outSockPos[0]}`);
+    $(this.lineClickEl).attr("y2", `${outSockPos[1]}`);
     if (this.arrowTypeEnd != this.parrowTypeEnd) {
       $(this.el).find("marker")[1].innerHTML = this.arrowTypeEnd;
       this.parrowTypeEnd = this.arrowTypeEnd;
