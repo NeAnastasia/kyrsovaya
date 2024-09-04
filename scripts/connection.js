@@ -9,12 +9,21 @@ export class Connection {
     inSock,
     outSock,
     arrowTypeStart = ArrowType.None,
-    arrowTypeEnd = ArrowType.DefaultEnd,
-    isDashed = false
+    arrowTypeEnd = ArrowType.None,
+    isDashed = false,
+    textCenter = "",
+    textEnd = "",
+    textStart = "",
+    id = "",
+    color = "#000000"
   ) {
-    this.id = Connection.idCon;
-    this.color = "#000000";
+    if (id !== "") {
+      this.idCon = parseInt(id.replace("connection-", ""), 10);
+    }
+    this.id = id === "" ? id : "connection-" + Connection.idCon;
+    this.color = color;
     Connection.idCon++;
+    this.isDashed = isDashed;
     this.inSock = inSock;
     this.outSock = outSock;
     this.parrowTypeStart = arrowTypeStart;
@@ -25,14 +34,24 @@ export class Connection {
     this.spanIn.style.position = "absolute";
     this.spanIn.style.left = inSock.getAbsolutePosition()[0] + "px";
     this.spanIn.style.top = inSock.getAbsolutePosition()[1] + "px";
+    this.spanIn.textContent = textStart;
+    $(this.spanIn).appendTo("#view-area")[0];
     this.spanOut = document.createElement("span");
     this.spanOut.style.position = "absolute";
     this.spanOut.style.left = outSock.getAbsolutePosition()[0] + "px";
     this.spanOut.style.top = outSock.getAbsolutePosition()[1] + "px";
+    this.spanOut.textContent = textEnd;
+    $(this.spanOut).appendTo("#view-area")[0];
     this.spanCenter = document.createElement("span");
     this.spanCenter.style.position = "absolute";
-    this.spanCenter.style.left = (inSock.getAbsolutePosition()[0] + outSock.getAbsolutePosition()[0])/2 + "px";
-    this.spanCenter.style.top = (inSock.getAbsolutePosition()[1] + outSock.getAbsolutePosition()[1])/2 + "px";
+    this.spanCenter.style.left =
+      (inSock.getAbsolutePosition()[0] + outSock.getAbsolutePosition()[0]) / 2 +
+      "px";
+    this.spanCenter.style.top =
+      (inSock.getAbsolutePosition()[1] + outSock.getAbsolutePosition()[1]) / 2 +
+      "px";
+    this.spanCenter.textContent = textCenter;
+    $(this.spanCenter).appendTo("#view-area")[0];
     this.el = $(
       `<svg class="node-connection">
         <defs>
@@ -43,17 +62,20 @@ export class Connection {
         this.arrowTypeEnd +
         `</marker>
       </defs>
-      <line x1="0" y1="0" x2="0" y2="0" stroke-width="2" marker-end="" marker-start="" stroke-dasharray="" class="arrow"/>
+      <line x1="0" y1="0" x2="0" y2="0" stroke-width="2" marker-end="" marker-start="" stroke-dasharray=""/>
+      <line x1="0" y1="0" x2="0" y2="0" stroke-width="20" class="arrow"/>
         </svg>`
     ).appendTo("#view-area")[0];
+    $(this.el).attr("id", this.id);
     this.lineEl = $(this.el).find("line")[0];
+    this.lineClickEl = $(this.el).find("line")[1];
     this.markerELStart = $(this.el).find("marker")[0];
     $(this.markerELStart).attr("id", `arrowhead-${this.id}-start`);
     this.markerELEnd = $(this.el).find("marker")[1];
     $(this.markerELEnd).attr("id", `arrowhead-${this.id}-end`);
     $(this.lineEl).attr("marker-end", `url(#arrowhead-${this.id}-end)`);
     $(this.lineEl).attr("marker-start", `url(#arrowhead-${this.id}-start)`);
-    this.lineEl.addEventListener("click", (e) => {
+    this.lineClickEl.addEventListener("click", (e) => {
       e.stopPropagation();
       const r = View.singleton.el.getBoundingClientRect();
       console.log(View.singleton.el);
@@ -85,27 +107,52 @@ export class Connection {
     this.arrowTypeStart = type;
     this.update();
   }
-  changeColorArrowHead(color) {
-    if ($(this.el).find("polyline")[0] !== undefined) {
-      $(this.el).find("polyline")[0].style.stroke = color;
-    } else if ($(this.el).find("polygon")[0] !== undefined) {
-      $(this.el).find("polygon")[0].style.stroke = color;
-      if (
-        this.arrowTypeStart == ArrowType.FilledStart ||
-        this.arrowTypeStart == ArrowType.Rhombus
-      ) {
-        $(this.el).find("polygon")[0].style.fill = color;
+  reverseArrowHeads() {
+    var previous = this.arrowTypeStart;
+    this.arrowTypeStart = this.arrowTypeEnd;
+    this.arrowTypeEnd = previous;
+    switch (this.arrowTypeStart) {
+      case ArrowType.DefaultEnd:
+        this.arrowTypeStart = ArrowType.DefaultStart;
+        break;
+      case ArrowType.FilledEnd:
+        this.arrowTypeStart = ArrowType.FilledStart;
+        break;
+      case ArrowType.HollowEnd:
+        this.arrowTypeStart = ArrowType.HollowStart;
+        break;
+    }
+    switch (this.arrowTypeEnd) {
+      case ArrowType.DefaultStart:
+        this.arrowTypeEnd = ArrowType.DefaultEnd;
+        break;
+      case ArrowType.FilledStart:
+        this.arrowTypeEnd = ArrowType.FilledEnd;
+        break;
+      case ArrowType.HollowStart:
+        this.arrowTypeEnd = ArrowType.HollowEnd;
+        break;
+    }
+    this.update();
+  }
+  changeColorArrowHead() {
+    if(this.arrowTypeStart === ArrowType.DefaultStart) {
+      $(this.el).find("#arrowhead-" + this.id + "-start polyline")[0].style.stroke = this.color;
+    }
+    else if(this.arrowTypeStart !== ArrowType.None) {
+      $(this.el).find("#arrowhead-" + this.id + "-start polygon")[0].style.stroke = this.color;
+      if (this.arrowTypeStart === ArrowType.FilledStart || this.arrowTypeStart === ArrowType.Rhombus) {
+      $(this.el).find("#arrowhead-" + this.id + "-start polygon")[0].style.fill = this.color;
       }
     }
-    if ($(this.el).find("polyline")[1] !== undefined) {
-      $(this.el).find("polyline")[1].style.stroke = color;
-    } else if ($(this.el).find("polygon")[1] !== undefined) {
-      $(this.el).find("polygon")[1].style.stroke = color;
-      if (
-        this.arrowTypeEnd == ArrowType.FilledEnd ||
-        this.arrowTypeEnd == ArrowType.Rhombus
-      ) {
-        $(this.el).find("polygon")[1].style.fill = color;
+
+    if(this.arrowTypeEnd === ArrowType.DefaultEnd) {
+      $(this.el).find("#arrowhead-" + this.id + "-end polyline")[0].style.stroke = this.color;
+    }
+    else if(this.arrowTypeEnd !== ArrowType.None) {
+      $(this.el).find("#arrowhead-" + this.id + "-end polygon")[0].style.stroke = this.color;
+      if (this.arrowTypeEnd === ArrowType.FilledEnd || this.arrowTypeEnd === ArrowType.Rhombus) {
+      $(this.el).find("#arrowhead-" + this.id + "-end polygon")[0].style.fill = this.color;
       }
     }
   }
@@ -119,15 +166,26 @@ export class Connection {
     this.spanIn.style.top = this.inSock.getAbsolutePosition()[1] + "px";
     this.spanOut.style.left = this.outSock.getAbsolutePosition()[0] + "px";
     this.spanOut.style.top = this.outSock.getAbsolutePosition()[1] + "px";
-    this.spanCenter.style.left = (this.inSock.getAbsolutePosition()[0] + this.outSock.getAbsolutePosition()[0])/2 + "px";
-    this.spanCenter.style.top = (this.inSock.getAbsolutePosition()[1] + this.outSock.getAbsolutePosition()[1])/2 + "px";
-    this.changeColorArrowHead(this.color);
+    this.spanCenter.style.left =
+      (this.inSock.getAbsolutePosition()[0] +
+        this.outSock.getAbsolutePosition()[0]) /
+        2 +
+      "px";
+    this.spanCenter.style.top =
+      (this.inSock.getAbsolutePosition()[1] +
+        this.outSock.getAbsolutePosition()[1]) /
+        2 +
+      "px";
     const inSockPos = this.inSock.getAbsolutePosition();
     const outSockPos = this.outSock.getAbsolutePosition();
     $(this.lineEl).attr("x1", `${inSockPos[0]}`);
     $(this.lineEl).attr("y1", `${inSockPos[1]}`);
     $(this.lineEl).attr("x2", `${outSockPos[0]}`);
     $(this.lineEl).attr("y2", `${outSockPos[1]}`);
+    $(this.lineClickEl).attr("x1", `${inSockPos[0]}`);
+    $(this.lineClickEl).attr("y1", `${inSockPos[1]}`);
+    $(this.lineClickEl).attr("x2", `${outSockPos[0]}`);
+    $(this.lineClickEl).attr("y2", `${outSockPos[1]}`);
     if (this.arrowTypeEnd != this.parrowTypeEnd) {
       $(this.el).find("marker")[1].innerHTML = this.arrowTypeEnd;
       this.parrowTypeEnd = this.arrowTypeEnd;
@@ -146,9 +204,12 @@ export class Connection {
     } else {
       $(this.markerELStart).attr("refX", `0`);
     }
+    this.changeColorArrowHead();
   }
+
   toJSON() {
     return {
+      id: this.id,
       inSock: {
         type: this.inSock.type,
         id: this.inSock.parent.id,
@@ -159,18 +220,28 @@ export class Connection {
       },
       arrowTypeEnd: this.arrowTypeEnd,
       arrowTypeStart: this.arrowTypeStart,
+      textCenter: this.spanCenter.textContent,
+      textEnd: this.spanOut.textContent,
+      textStart: this.spanIn.textContent,
+      color: this.color,
     };
   }
   static fromJSON(json) {
-    const n1 = getNode(json.inSock.id);
-    const n2 = getNode(json.outSock.id);
+    const n1 = getNode(parseInt(json.inSock.id.replace("node-", ""), 10));
+    const n2 = getNode(parseInt(json.outSock.id.replace("node-", ""), 10));
     const inSock = n1.sockets[json.inSock.type];
     const outSock = n2.sockets[json.outSock.type];
     const conn = new Connection(
       inSock,
       outSock,
       json.arrowTypeStart,
-      json.arrowTypeEnd
+      json.arrowTypeEnd,
+      json.isDashed,
+      json.textCenter,
+      json.textEnd,
+      json.textStart,
+      json.id,
+      json.color
     );
     inSock.addConnection(conn);
     outSock.addConnection(conn);

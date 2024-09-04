@@ -23,40 +23,42 @@ $(document).ready(function(e){
     view.fromJSON({
         "nodes": [
             {
-                "id": 0,
+                "id": "node-0",
                 "type": "class",
                 "pos": [
                     504,
                     350
                 ],
                 "text": "test1",
-                "templateName": "class-node-template",
                 "content1": "+ 2dx",
                 "content2": "+ "
             },
             {
-                "id": 1,
+                "id": "node-1",
                 "type": "rhombus",
                 "pos": [
                     605.5,
                     90
                 ],
                 "text": "text",
-                "templateName": "node-template"
             }
         ],
         "connections": [
             {
+                "id" : "connection-0",
                 "inSock": {
                     "type": "down",
-                    "id": 1
+                    "id": "node-1"
                 },
                 "outSock": {
                     "type": "up",
-                    "id": 0
+                    "id": "node-0"
                 },
+                "isDashed": false,
                 "arrowTypeEnd": ArrowType.DefaultEnd,
-                "arrowTypeStart": ArrowType.None
+                "arrowTypeStart": ArrowType.None,
+                "color": "#f91a1a",
+                "textStart": "1..*"
             }
         ]
     })
