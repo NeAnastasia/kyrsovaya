@@ -1,7 +1,7 @@
 import { ArrowType } from "./enum/ArrowType.js";
 
-export class Menu {
-  static singleton = new Menu();
+export class ArrowsMenu {
+  static singleton = new ArrowsMenu();
   constructor(arrowType, isDashed) {
     this.curArrowType = arrowType;
     this.isDashed = isDashed;
@@ -103,12 +103,10 @@ export class Menu {
       ) {
         e.target.addEventListener(
           "blur",
-          (e) => {
-            console.log("Ignore blur");
-          },
+          (e) => {},
           { once: true }
         );
-        return console.log("Ignore blur");
+        return;
       }
       this.deleteMenu();
     });

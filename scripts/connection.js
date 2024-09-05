@@ -1,5 +1,5 @@
 import { ArrowType } from "./enum/ArrowType.js";
-import { Menu } from "./menu.js";
+import { ArrowsMenu } from "./arrowsMenu.js";
 import { Connector } from "./connector.js";
 import { View } from "./view.js";
 
@@ -80,7 +80,7 @@ export class Connection {
       const r = View.singleton.el.getBoundingClientRect();
       console.log(View.singleton.el);
       console.log(r);
-      Menu.singleton.appearing(this, e.clientX - r.left, e.clientY - r.top);
+      ArrowsMenu.singleton.appearing(this, e.clientX - r.left, e.clientY - r.top);
     });
     this.changeColor(this.color);
     this.update();
@@ -145,7 +145,6 @@ export class Connection {
       $(this.el).find("#arrowhead-" + this.id + "-start polygon")[0].style.fill = this.color;
       }
     }
-
     if(this.arrowTypeEnd === ArrowType.DefaultEnd) {
       $(this.el).find("#arrowhead-" + this.id + "-end polyline")[0].style.stroke = this.color;
     }

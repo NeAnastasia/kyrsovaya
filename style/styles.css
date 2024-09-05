@@ -67,7 +67,7 @@ svg.node-connection > path {
 .node-connection-socket {
   width: var(--ssize);
   height: var(--ssize);
-  background-color: rgb(99, 179, 192);
+  background-color: rgb(231, 123, 123);
   border-radius: 50%;
   position: absolute;
   margin: auto;
@@ -204,6 +204,15 @@ svg.node-connection > path {
   text-align: center;
 }
 
+.text-menu {
+  position: fixed;
+  top: 0;
+  right: 0;
+  border: 1px solid black;
+  padding: 20px;
+  background-color: rgb(224, 224, 224);
+}
+
 .node textarea {
   resize: none;
   overflow: hidden;
@@ -228,4 +237,12 @@ svg.node-connection > path {
   justify-content: center;
   align-items: center;
   flex-wrap: nowrap;
+}
+
+.bold {
+  font-weight: bold;
+}
+
+.italic {
+  font-style: italic;
 }

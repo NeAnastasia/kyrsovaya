@@ -2,6 +2,7 @@ import { Draggable } from "./draggable.js";
 import { Socket } from "./socket.js";
 import { Selection } from "./selection.js";
 import { View } from "./view.js";
+import { TextMenu } from "./textMenu.js";
 
 export class Node {
   static idC = 0;
@@ -112,10 +113,15 @@ export class Node {
         e.stopPropagation();
       }
     });
-    this.textEl.addEventListener("dblclick", () => {
+    this.textEl.addEventListener("dblclick", (e) => {
       $(this.textEl).attr("contenteditable", true);
       this.textEl.focus();
+      TextMenu.singleton.appearing(e.target.classList, e.target);
       window.getSelection().selectAllChildren(this.textEl);
+    });
+    $(document.getElementsByClassName("node-text-content")).click((e) => {
+      e.stopPropagation();
+      TextMenu.singleton.appearing(e.target.classList, e.target);
     });
     this.textEl.addEventListener("focusout", (e) => {
       this.onRename(e);
