@@ -78,9 +78,23 @@ export class Connection {
     this.lineClickEl.addEventListener("click", (e) => {
       e.stopPropagation();
       const r = View.singleton.el.getBoundingClientRect();
-      console.log(View.singleton.el);
-      console.log(r);
-      ArrowsMenu.singleton.appearing(this, e.clientX - r.left, e.clientY - r.top);
+      if (document.getElementById("menu")) {
+        var events = $._data(document.getElementById("menu"), "events");
+        if (events) {
+          $.each(events, function (evName, e) {
+            if (evName == "blur") {
+              $("#menu").off("blur");
+              return false;
+            }
+          });
+        }
+      }
+
+      ArrowsMenu.singleton.appearing(
+        this,
+        e.clientX - r.left,
+        e.clientY - r.top
+      );
     });
     this.changeColor(this.color);
     this.update();
@@ -136,22 +150,38 @@ export class Connection {
     this.update();
   }
   changeColorArrowHead() {
-    if(this.arrowTypeStart === ArrowType.DefaultStart) {
-      $(this.el).find("#arrowhead-" + this.id + "-start polyline")[0].style.stroke = this.color;
-    }
-    else if(this.arrowTypeStart !== ArrowType.None) {
-      $(this.el).find("#arrowhead-" + this.id + "-start polygon")[0].style.stroke = this.color;
-      if (this.arrowTypeStart === ArrowType.FilledStart || this.arrowTypeStart === ArrowType.Rhombus) {
-      $(this.el).find("#arrowhead-" + this.id + "-start polygon")[0].style.fill = this.color;
+    if (this.arrowTypeStart === ArrowType.DefaultStart) {
+      $(this.el).find(
+        "#arrowhead-" + this.id + "-start polyline"
+      )[0].style.stroke = this.color;
+    } else if (this.arrowTypeStart !== ArrowType.None) {
+      $(this.el).find(
+        "#arrowhead-" + this.id + "-start polygon"
+      )[0].style.stroke = this.color;
+      if (
+        this.arrowTypeStart === ArrowType.FilledStart ||
+        this.arrowTypeStart === ArrowType.Rhombus
+      ) {
+        $(this.el).find(
+          "#arrowhead-" + this.id + "-start polygon"
+        )[0].style.fill = this.color;
       }
     }
-    if(this.arrowTypeEnd === ArrowType.DefaultEnd) {
-      $(this.el).find("#arrowhead-" + this.id + "-end polyline")[0].style.stroke = this.color;
-    }
-    else if(this.arrowTypeEnd !== ArrowType.None) {
-      $(this.el).find("#arrowhead-" + this.id + "-end polygon")[0].style.stroke = this.color;
-      if (this.arrowTypeEnd === ArrowType.FilledEnd || this.arrowTypeEnd === ArrowType.Rhombus) {
-      $(this.el).find("#arrowhead-" + this.id + "-end polygon")[0].style.fill = this.color;
+    if (this.arrowTypeEnd === ArrowType.DefaultEnd) {
+      $(this.el).find(
+        "#arrowhead-" + this.id + "-end polyline"
+      )[0].style.stroke = this.color;
+    } else if (this.arrowTypeEnd !== ArrowType.None) {
+      $(this.el).find(
+        "#arrowhead-" + this.id + "-end polygon"
+      )[0].style.stroke = this.color;
+      if (
+        this.arrowTypeEnd === ArrowType.FilledEnd ||
+        this.arrowTypeEnd === ArrowType.Rhombus
+      ) {
+        $(this.el).find(
+          "#arrowhead-" + this.id + "-end polygon"
+        )[0].style.fill = this.color;
       }
     }
   }
