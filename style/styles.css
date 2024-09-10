@@ -246,3 +246,9 @@ svg.node-connection > path {
 .italic {
   font-style: italic;
 }
+
+.alert-click {
+  position: fixed;
+  top: 0;
+  right: 0;
+}

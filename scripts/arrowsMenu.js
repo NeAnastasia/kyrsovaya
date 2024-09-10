@@ -90,8 +90,13 @@ export class ArrowsMenu {
     <input type="text" class="form-control" id="input-cardinal-number-3">
     </div>
     </div>`)[0];
+  }
 
-    this.el.addEventListener("blur", (e) => {
+  appearing(arrow, left, top) {
+    
+    this.arrow = arrow;
+    $(this.el).appendTo("#view-area")[0];
+    $(this.el).on('blur', (e) => {
       if (
         e.relatedTarget &&
         (e.relatedTarget ===
@@ -101,37 +106,39 @@ export class ArrowsMenu {
           e.relatedTarget ===
             document.querySelector("#input-cardinal-number-3"))
       ) {
-        e.target.addEventListener(
-          "blur",
-          (e) => {},
-          { once: true }
-        );
+        e.target.addEventListener("blur", (e) => {}, { once: true });
         return;
       }
-      this.deleteMenu();
+        this.deleteMenu();
     });
-  }
-
-  appearing(arrow, left, top) {
-    this.arrow = arrow;
-    $(this.el).appendTo("#view-area")[0];
     document.getElementById("menu").style["top"] = top + "px";
     document.getElementById("menu").style["left"] = left + "px";
     this.dropdownMenu = document.querySelectorAll("ul.dropdown-menu>li");
     document.getElementById("input-cardinal-number-1").value = "";
     document.getElementById("input-cardinal-number-2").value = "";
     document.getElementById("input-cardinal-number-3").value = "";
-
-    if (this.arrow.spanIn.textContent !== document.getElementById("input-cardinal-number-1").value) {
-      document.getElementById("input-cardinal-number-1").value = this.arrow.spanIn.textContent;
+    if (
+      this.arrow.spanIn.textContent !==
+      document.getElementById("input-cardinal-number-1").value
+    ) {
+      document.getElementById("input-cardinal-number-1").value =
+        this.arrow.spanIn.textContent;
     }
-    
-    if (this.arrow.spanCenter.textContent !== document.getElementById("input-cardinal-number-2").value) {
-      document.getElementById("input-cardinal-number-2").value = this.arrow.spanCenter.textContent;
+
+    if (
+      this.arrow.spanCenter.textContent !==
+      document.getElementById("input-cardinal-number-2").value
+    ) {
+      document.getElementById("input-cardinal-number-2").value =
+        this.arrow.spanCenter.textContent;
     }
 
-    if (this.arrow.spanOut.textContent !== document.getElementById("input-cardinal-number-3").value) {
-      document.getElementById("input-cardinal-number-3").value = this.arrow.spanOut.textContent;
+    if (
+      this.arrow.spanOut.textContent !==
+      document.getElementById("input-cardinal-number-3").value
+    ) {
+      document.getElementById("input-cardinal-number-3").value =
+        this.arrow.spanOut.textContent;
     }
 
     this.el.focus();
@@ -188,18 +195,30 @@ export class ArrowsMenu {
         this.deleteMenu();
       }
     });
-    
-    document.getElementById("input-cardinal-number-1").addEventListener('input', (e) => {
-      this.arrow.spanIn.textContent = $(document.getElementById("input-cardinal-number-1")).val();
-    });
 
-    document.getElementById("input-cardinal-number-2").addEventListener('input', (e) => {
-      this.arrow.spanCenter.textContent = $(document.getElementById("input-cardinal-number-2")).val();
-    });
-    
-    document.getElementById("input-cardinal-number-3").addEventListener('input', (e) => {
-      this.arrow.spanOut.textContent = $(document.getElementById("input-cardinal-number-3")).val();
-    });
+    document
+      .getElementById("input-cardinal-number-1")
+      .addEventListener("input", (e) => {
+        this.arrow.spanIn.textContent = $(
+          document.getElementById("input-cardinal-number-1")
+        ).val();
+      });
+
+    document
+      .getElementById("input-cardinal-number-2")
+      .addEventListener("input", (e) => {
+        this.arrow.spanCenter.textContent = $(
+          document.getElementById("input-cardinal-number-2")
+        ).val();
+      });
+
+    document
+      .getElementById("input-cardinal-number-3")
+      .addEventListener("input", (e) => {
+        this.arrow.spanOut.textContent = $(
+          document.getElementById("input-cardinal-number-3")
+        ).val();
+      });
 
     $(document.getElementById("input-cardinal-number-2")).blur((e) => {
       if (
