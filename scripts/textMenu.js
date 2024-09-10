@@ -50,7 +50,7 @@ export class TextMenu {
   }
   appearing(classes, textEl) {
     $(this.el).appendTo(document.body);
-    this.el.focus();
+    //this.el.focus();
     document.querySelector("#checkbox-bold").checked = false;
     document.querySelector("#checkbox-italic").checked = false;
     document.querySelector("#checkbox-underline").checked = false;

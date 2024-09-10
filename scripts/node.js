@@ -125,8 +125,12 @@ export class Node {
     });
     this.textEl.addEventListener("focusout", (e) => {
       this.onRename(e);
+      TextMenu.singleton.deleteMenu();
       $(this.textEl).attr("contenteditable", false);
       window.dispatchEvent(new Event("viewupdate"));
+    });
+    $(document.getElementsByClassName("node-text-content")).focusout(() => {
+      TextMenu.singleton.deleteMenu();
     });
     this.textEl.addEventListener("input", (e) => {
       this.onRename(e);
