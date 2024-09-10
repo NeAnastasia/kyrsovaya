@@ -33,25 +33,9 @@ export class TextMenu {
 </div>
   </div>
 </div>`)[0];
-
-    this.el.addEventListener("blur", (e) => {
-      if (
-        e.relatedTarget &&
-        (e.relatedTarget === document.querySelector("#checkbox-bold") ||
-          e.relatedTarget === document.querySelector("#checkbox-italic") ||
-          e.relatedTarget === document.querySelector("#checkbox-underline") ||
-          e.relatedTarget === document.querySelector("#checkbox-line-through"))
-      ) {
-        e.target.addEventListener("blur", (e) => {}, { once: true });
-        return;
-      }
-      this.deleteMenu();
-    });
   }
   appearing(classes, textEl) {
-    console.log("aaa00");
     $(this.el).appendTo(document.body);
-    //this.el.focus();
     document.querySelector("#checkbox-bold").checked = false;
     document.querySelector("#checkbox-italic").checked = false;
     document.querySelector("#checkbox-underline").checked = false;
