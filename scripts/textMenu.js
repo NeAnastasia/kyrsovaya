@@ -49,6 +49,7 @@ export class TextMenu {
     });
   }
   appearing(classes, textEl) {
+    console.log("aaa00");
     $(this.el).appendTo(document.body);
     this.el.focus();
     document.querySelector("#checkbox-bold").checked = false;
