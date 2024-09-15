@@ -48,4 +48,16 @@ export class Socket{
             c.destroy()
         }
     }
+    isUp(){
+        return this.type.match(/^up*/);
+    }
+    isRight(){
+        return this.type.match(/^right*/);
+    }
+    isLeft(){
+        return this.type.match(/^left*/);
+    }
+    isDown(){
+        return this.type.match(/^down*/);
+    }
 }

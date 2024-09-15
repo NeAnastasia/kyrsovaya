@@ -9,7 +9,7 @@ export class Connection {
     inSock,
     outSock,
     arrowTypeStart = ArrowType.None,
-    arrowTypeEnd = ArrowType.None,
+    arrowTypeEnd = ArrowType.DefaultEnd,
     isDashed = false,
     textCenter = "",
     textEnd = "",
@@ -89,7 +89,6 @@ export class Connection {
           });
         }
       }
-
       ArrowsMenu.singleton.appearing(
         this,
         e.clientX - r.left,
