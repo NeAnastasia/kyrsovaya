@@ -151,6 +151,12 @@ export class Node {
       this.el.style.cursor = "default";
     }
   }
+  getAcrossYPosition() {
+    return this.pos[1] + this.#height;
+  }
+  getAcrossXPosition() {
+    return this.pos[0] + this.#width;
+  }
   onNodeMove(e, delta) {
     if (this.pressType == 0) {
       Selection.singleton.moveAll(delta);

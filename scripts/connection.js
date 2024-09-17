@@ -23,6 +23,8 @@ export class Connection {
     this.id = id === "" ? id : "connection-" + Connection.idCon;
     this.color = color;
     Connection.idCon++;
+    this.arrowLines = `<line x1="0" y1="0" x2="0" y2="0" stroke-width="2" marker-end="" marker-start="" stroke-dasharray=""/>`;
+    this.arrowIndent = 15;
     this.isDashed = isDashed;
     this.inSock = inSock;
     this.outSock = outSock;
@@ -52,6 +54,7 @@ export class Connection {
       "px";
     this.spanCenter.textContent = textCenter;
     $(this.spanCenter).appendTo("#view-area")[0];
+    this.creatingPath();
     this.el = $(
       `<svg class="node-connection">
         <defs>
@@ -61,42 +64,88 @@ export class Connection {
         <marker id="" markerWidth="10" markerHeight="7" refX="0" refY="3.5" orient="auto">` +
         this.arrowTypeEnd +
         `</marker>
-      </defs>
-      <line x1="0" y1="0" x2="0" y2="0" stroke-width="2" marker-end="" marker-start="" stroke-dasharray=""/>
-      <line x1="0" y1="0" x2="0" y2="0" stroke-width="20" class="arrow"/>
-        </svg>`
+      </defs>`
+      + this.arrowLines +
+        `</svg>`
+        // <line x1="0" y1="0" x2="0" y2="0" stroke-width="2" marker-end="" marker-start="" stroke-dasharray=""/>
+        // <line x1="0" y1="0" x2="0" y2="0" stroke-width="20" class="arrow"/>
     ).appendTo("#view-area")[0];
     $(this.el).attr("id", this.id);
-    this.lineEl = $(this.el).find("line")[0];
-    this.lineClickEl = $(this.el).find("line")[1];
-    this.markerELStart = $(this.el).find("marker")[0];
-    $(this.markerELStart).attr("id", `arrowhead-${this.id}-start`);
-    this.markerELEnd = $(this.el).find("marker")[1];
-    $(this.markerELEnd).attr("id", `arrowhead-${this.id}-end`);
-    $(this.lineEl).attr("marker-end", `url(#arrowhead-${this.id}-end)`);
-    $(this.lineEl).attr("marker-start", `url(#arrowhead-${this.id}-start)`);
-    this.lineClickEl.addEventListener("click", (e) => {
-      e.stopPropagation();
-      const r = View.singleton.el.getBoundingClientRect();
-      if (document.getElementById("menu")) {
-        var events = $._data(document.getElementById("menu"), "events");
-        if (events) {
-          $.each(events, function (evName, e) {
-            if (evName == "blur") {
-              $("#menu").off("blur");
-              return false;
+    // this.lineEl = $(this.el).find("line")[0];
+    // this.lineClickEl = $(this.el).find("line")[1];
+    // this.markerELStart = $(this.el).find("marker")[0];
+    // $(this.markerELStart).attr("id", `arrowhead-${this.id}-start`);
+    // this.markerELEnd = $(this.el).find("marker")[1];
+    // $(this.markerELEnd).attr("id", `arrowhead-${this.id}-end`);
+    // $(this.lineEl).attr("marker-end", `url(#arrowhead-${this.id}-end)`);
+    // $(this.lineEl).attr("marker-start", `url(#arrowhead-${this.id}-start)`);
+    // this.lineClickEl.addEventListener("click", (e) => {
+    //   e.stopPropagation();
+    //   const r = View.singleton.el.getBoundingClientRect();
+    //   if (document.getElementById("menu")) {
+    //     var events = $._data(document.getElementById("menu"), "events");
+    //     if (events) {
+    //       $.each(events, function (evName, e) {
+    //         if (evName == "blur") {
+    //           $("#menu").off("blur");
+    //           return false;
+    //         }
+    //       });
+    //     }
+    //   }
+    //   ArrowsMenu.singleton.appearing(
+    //     this,
+    //     e.clientX - r.left,
+    //     e.clientY - r.top
+    //   );
+    // });
+    console.log(this.el);
+    this.changeColor(this.color);
+    //this.update();
+  }
+  creatingPath(){
+    const inSockPos = this.inSock.getAbsolutePosition();
+    const outSockPos = this.outSock.getAbsolutePosition();
+    const inSockParent = this.inSock.parent;
+    const outSockParent = this.outSock.parent;
+
+    if(this.inSock.isUp()){
+      if(this.outSock.isUp()){
+        if (this.inSock.getAbsolutePosition()[0] < (this.outSock.parent.pos[0] + this.arrowIndent) || this.inSock.getAbsolutePosition()[0] >= (this.outSock.parent.getAcrossXPosition() + this.arrowIndent)){
+          console.log("upup, out of node")
+          if (this.inSock.getAbsolutePosition()[1] > this.outSock.getAbsolutePosition()[1]) {
+            //outSock + arrowIndent
+            this.arrowLines = 
+            `<line x1="` + inSockPos[0] + `" y1="` + inSockPos[1] + `" x2="` + inSockPos[0] + `" y2="` + (outSockPos[1] - this.arrowIndent) + `" stroke-width="2" marker-start="" stroke-dasharray=""/>
+            <line x1="` + inSockPos[0] + `" y1="` + (outSockPos[1] - this.arrowIndent) + `" x2="` + outSockPos[0] +`" y2="` + (outSockPos[1] - this.arrowIndent) + `" stroke-width="2" stroke-dasharray=""/>
+            <line x1="` + outSockPos[0]  + `" y1="` + (outSockPos[1] - this.arrowIndent) + `" x2="` + outSockPos[0] +`" y2="` + outSockPos[1] + `" stroke-width="2" marker-end="" stroke-dasharray=""/>`
+          } else {
+            //inSock + arrowIndent
+            this.arrowLines = 
+            `<line x1="` + inSockPos[0] + `" y1="` + inSockPos[1] + `" x2="` + inSockPos[0] + `" y2="` + (inSockPos[1] - this.arrowIndent) + `" stroke-width="2" marker-start="" stroke-dasharray=""/>
+            <line x1="` + inSockPos[0] + `" y1="` + (inSockPos[1] - this.arrowIndent) + `" x2="` + outSockPos[0] +`" y2="` + (inSockPos[1] - this.arrowIndent) + `" stroke-width="2" stroke-dasharray=""/>
+            <line x1="` + outSockPos[0]  + `" y1="` + (inSockPos[1] - this.arrowIndent) + `" x2="` + outSockPos[0] +`" y2="` + outSockPos[1] + `" stroke-width="2" marker-end="" stroke-dasharray=""/>`
+          }
+        } else {
+          console.log("upup, in node")
+          const halfGap = Math.abs(this.inSock.getAbsolutePosition()[1] - this.outSock.parent.getAcrossYPosition()) / 2;
+          this.arrowLines = 
+            `<line x1="` + inSockPos[0] + `" y1="` + inSockPos[1] + `" x2="` + inSockPos[0] + `" y2="` + (inSockPos[1] - halfGap) + `" stroke-width="2" marker-start="" stroke-dasharray=""/>
+            <line x1="` + inSockPos[0] + `" y1="` + (inSockPos[1] - halfGap) + `" x2="`
+            if(inSockParent.pos[0] < outSockParent.pos[0]) {
+              this.arrowLines += (outSockParent.pos[0] - this.arrowIndent) +`" y2="` + (inSockPos[1] - halfGap) + `" stroke-width="2" stroke-dasharray=""/>
+              <line x1="` + (outSockParent.pos[0] - this.arrowIndent) + `" y1="` + (inSockPos[1] - halfGap) + `" x2="` + (outSockParent.pos[0] - this.arrowIndent) +`" y2="` + (outSockPos[1] - this.arrowIndent) + `" stroke-width="2" stroke-dasharray=""/>
+              <line x1="` + (outSockParent.pos[0] - this.arrowIndent) + `" y1="` + (outSockPos[1] - this.arrowIndent);
+            } else {
+              this.arrowLines += (outSockParent.getAcrossXPosition() + this.arrowIndent) +`" y2="` + (inSockPos[1] - halfGap) + `" stroke-width="2" stroke-dasharray=""/>
+              <line x1="` + (outSockParent.getAcrossXPosition() + this.arrowIndent) + `" y1="` + (inSockPos[1] - halfGap) + `" x2="` + (outSockParent.getAcrossXPosition() + this.arrowIndent) +`" y2="` + (outSockPos[1] - this.arrowIndent) + `" stroke-width="2" stroke-dasharray=""/>
+              <line x1="` + (outSockParent.getAcrossXPosition() + this.arrowIndent) + `" y1="` + (outSockPos[1] - this.arrowIndent);
             }
-          });
+            this.arrowLines += `" x2="` + outSockPos[0] +`" y2="` + (outSockPos[1] - this.arrowIndent) + `" stroke-width="2" stroke-dasharray=""/>
+            <line x1="` + outSockPos[0]  + `" y1="` + (outSockPos[1] - this.arrowIndent) + `" x2="` + outSockPos[0] +`" y2="` + outSockPos[1] + `" stroke-width="2" marker-end="" stroke-dasharray=""/>`
         }
       }
-      ArrowsMenu.singleton.appearing(
-        this,
-        e.clientX - r.left,
-        e.clientY - r.top
-      );
-    });
-    this.changeColor(this.color);
-    this.update();
+    }
   }
   destroy() {
     $(this.el).remove();
@@ -186,7 +235,8 @@ export class Connection {
   }
   changeColor(color) {
     this.color = color;
-    $(this.el).find("line")[0].style.stroke = this.color;
+    $(this.el).find("line").css('stroke', this.color);
+    //$('h1, h2, h3, h4, .contentheading, .title').css('color', 'red');
     this.update();
   }
   update() {
@@ -194,45 +244,45 @@ export class Connection {
     this.spanIn.style.top = this.inSock.getAbsolutePosition()[1] + "px";
     this.spanOut.style.left = this.outSock.getAbsolutePosition()[0] + "px";
     this.spanOut.style.top = this.outSock.getAbsolutePosition()[1] + "px";
-    this.spanCenter.style.left =
-      (this.inSock.getAbsolutePosition()[0] +
-        this.outSock.getAbsolutePosition()[0]) /
-        2 +
-      "px";
-    this.spanCenter.style.top =
-      (this.inSock.getAbsolutePosition()[1] +
-        this.outSock.getAbsolutePosition()[1]) /
-        2 +
-      "px";
-    const inSockPos = this.inSock.getAbsolutePosition();
-    const outSockPos = this.outSock.getAbsolutePosition();
-    $(this.lineEl).attr("x1", `${inSockPos[0]}`);
-    $(this.lineEl).attr("y1", `${inSockPos[1]}`);
-    $(this.lineEl).attr("x2", `${outSockPos[0]}`);
-    $(this.lineEl).attr("y2", `${outSockPos[1]}`);
-    $(this.lineClickEl).attr("x1", `${inSockPos[0]}`);
-    $(this.lineClickEl).attr("y1", `${inSockPos[1]}`);
-    $(this.lineClickEl).attr("x2", `${outSockPos[0]}`);
-    $(this.lineClickEl).attr("y2", `${outSockPos[1]}`);
-    if (this.arrowTypeEnd != this.parrowTypeEnd) {
-      $(this.el).find("marker")[1].innerHTML = this.arrowTypeEnd;
-      this.parrowTypeEnd = this.arrowTypeEnd;
-    }
-    if (this.arrowTypeStart != this.parrowTypeStart) {
-      $(this.el).find("marker")[0].innerHTML = this.arrowTypeStart;
-      this.parrowTypeStart = this.arrowTypeStart;
-    }
-    if (this.arrowTypeEnd == ArrowType.DefaultEnd) {
-      $(this.markerELEnd).attr("refX", `10`);
-    } else {
-      $(this.markerELEnd).attr("refX", `0`);
-    }
-    if (this.arrowTypeStart != ArrowType.DefaultStart) {
-      $(this.markerELStart).attr("refX", `10`);
-    } else {
-      $(this.markerELStart).attr("refX", `0`);
-    }
-    this.changeColorArrowHead();
+    // this.spanCenter.style.left =
+    //   (this.inSock.getAbsolutePosition()[0] +
+    //     this.outSock.getAbsolutePosition()[0]) /
+    //     2 +
+    //   "px";
+    // this.spanCenter.style.top =
+    //   (this.inSock.getAbsolutePosition()[1] +
+    //     this.outSock.getAbsolutePosition()[1]) /
+    //     2 +
+    //   "px";
+    // const inSockPos = this.inSock.getAbsolutePosition();
+    // const outSockPos = this.outSock.getAbsolutePosition();
+    // $(this.lineEl).attr("x1", `${inSockPos[0]}`);
+    // $(this.lineEl).attr("y1", `${inSockPos[1]}`);
+    // $(this.lineEl).attr("x2", `${outSockPos[0]}`);
+    // $(this.lineEl).attr("y2", `${outSockPos[1]}`);
+    // $(this.lineClickEl).attr("x1", `${inSockPos[0]}`);
+    // $(this.lineClickEl).attr("y1", `${inSockPos[1]}`);
+    // $(this.lineClickEl).attr("x2", `${outSockPos[0]}`);
+    // $(this.lineClickEl).attr("y2", `${outSockPos[1]}`);
+    // if (this.arrowTypeEnd != this.parrowTypeEnd) {
+    //   $(this.el).find("marker")[1].innerHTML = this.arrowTypeEnd;
+    //   this.parrowTypeEnd = this.arrowTypeEnd;
+    // }
+    // if (this.arrowTypeStart != this.parrowTypeStart) {
+    //   $(this.el).find("marker")[0].innerHTML = this.arrowTypeStart;
+    //   this.parrowTypeStart = this.arrowTypeStart;
+    // }
+    // if (this.arrowTypeEnd == ArrowType.DefaultEnd) {
+    //   $(this.markerELEnd).attr("refX", `10`);
+    // } else {
+    //   $(this.markerELEnd).attr("refX", `0`);
+    // }
+    // if (this.arrowTypeStart != ArrowType.DefaultStart) {
+    //   $(this.markerELStart).attr("refX", `10`);
+    // } else {
+    //   $(this.markerELStart).attr("refX", `0`);
+    // }
+    // this.changeColorArrowHead();
   }
 
   toJSON() {
