@@ -170,9 +170,9 @@ export class Connection {
     }
     } else {
       //Lower
-      this.arrowLines = `<line x1="` + inSockPos[0] + `" y1="` + inSockPos[1] + `" x2="` + inSockPos[0] + `" y2="` + (inSockPos[1] - this.arrowIndent) + `" stroke-width="2" marker-start="" stroke-dasharray=""/>
-      <line x1="` + inSockPos[0] + `" y1="` + (inSockPos[1] - this.arrowIndent) + `" x2="`;
       if(inSockPos[0] > outSockPos[0]) {
+        this.arrowLines = `<line x1="` + inSockPos[0] + `" y1="` + inSockPos[1] + `" x2="` + inSockPos[0] + `" y2="` + (inSockPos[1] - this.arrowIndent) + `" stroke-width="2" marker-start="" stroke-dasharray=""/>
+        <line x1="` + inSockPos[0] + `" y1="` + (inSockPos[1] - this.arrowIndent) + `" x2="`;
         //Left
         if(outSockPos[0] + this.arrowIndent > inSockParent.pos[0] - this.arrowIndent) {
         //Under node
@@ -192,9 +192,24 @@ export class Connection {
         } else {
         //Right
         //Make under node
-        this.arrowLines += (outSockPos[0] + this.arrowIndent) + `" y2="` + (inSockPos[1] - this.arrowIndent) + `" stroke-width="2" marker-start="" stroke-dasharray=""/>
-          <line x1="` + (outSockPos[0] + this.arrowIndent) + `" y1="` + (inSockPos[1] - this.arrowIndent) + `" x2="` + (outSockPos[0] + this.arrowIndent) + `" y2="` + outSockPos[1] + `" stroke-width="2" stroke-dasharray=""/>
-          <line x1="` + (outSockPos[0] + this.arrowIndent);
+        if ((outSockParent.pos[1] - this.arrowIndent) > inSockPos[1]){
+          this.arrowLines = `<line x1="` + inSockPos[0] + `" y1="` + inSockPos[1] + `" x2="` + inSockPos[0] + `" y2="` + (inSockPos[1] - this.arrowIndent) + `" stroke-width="2" marker-start="" stroke-dasharray=""/>
+          <line x1="` + inSockPos[0] + `" y1="` + (inSockPos[1] - this.arrowIndent) + `" x2="`;
+          if(outSockPos[0] < inSockParent.getAcrossXPosition() - this.arrowIndent ) {
+            //Under node
+            this.arrowLines += (inSockParent.getAcrossXPosition() + this.arrowIndent) + `" y2="` + (inSockPos[1] - this.arrowIndent) + `" stroke-width="2" marker-start="" stroke-dasharray=""/>
+            <line x1="` + (inSockParent.getAcrossXPosition() + this.arrowIndent) + `" y1="` + (inSockPos[1] - this.arrowIndent) + `" x2="` + (inSockParent.getAcrossXPosition() + this.arrowIndent) + `" y2="` + outSockPos[1] + `" stroke-width="2" stroke-dasharray=""/>
+            <line x1="` + (inSockParent.getAcrossXPosition() + this.arrowIndent);
+          } else {
+            console.log("out");
+            //Out of node
+            this.arrowLines += (outSockPos[0] + this.arrowIndent) + `" y2="` + (inSockPos[1] - this.arrowIndent) + `" stroke-width="2" marker-start="" stroke-dasharray=""/>
+            <line x1="` + (outSockPos[0] + this.arrowIndent) + `" y1="` + (inSockPos[1] - this.arrowIndent) + `" x2="` + (outSockPos[0] + this.arrowIndent) + `" y2="` + outSockPos[1] + `" stroke-width="2" stroke-dasharray=""/>
+            <line x1="` + (outSockPos[0] + this.arrowIndent);
+          }
+        } else {
+
+        }
       }
       this.arrowLines += `" y1="` + outSockPos[1] + `" x2="` + outSockPos[0] +`" y2="` + outSockPos[1] + `" stroke-width="2" marker-end="" stroke-dasharray=""/>`;
     }
@@ -204,6 +219,9 @@ export class Connection {
     this.arrowLines = 
         `<line x1="` + inSockPos[0] + `" y1="` + inSockPos[1] + `" x2="` + inSockPos[0] + `" y2="` + outSockPos[1] + `" stroke-width="2" marker-start="" stroke-dasharray=""/>
         <line x1="` + inSockPos[0]  + `" y1="` + outSockPos[1] + `" x2="` + outSockPos[0] +`" y2="` + outSockPos[1] + `" stroke-width="2" marker-end="" stroke-dasharray=""/>`
+  }
+  definitionUpRight(){
+    
   }
   destroy() {
     $(this.el).remove();
