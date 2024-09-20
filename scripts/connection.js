@@ -113,7 +113,9 @@ export class Connection {
       if(this.outSock.isUp()){
         this.definitionInUpOutUp(inSockPos, outSockPos, inSockParent, outSockParent);
       } else if (this.outSock.isRight()) {
-        this.definitionInUpOutRight(inSockPos, outSockPos, inSockParent, outSockParent);
+        this.definitionUpRight(inSockPos, outSockPos, inSockParent, outSockParent);
+      } else if (this.outSock.isLeft()) {
+        this.definitionUpLeft(inSockPos, outSockPos, inSockParent, outSockParent);
       }
     }
   }
@@ -152,22 +154,17 @@ export class Connection {
         <line x1="` + outSockPos[0]  + `" y1="` + (outSockPos[1] - this.arrowIndent) + `" x2="` + outSockPos[0] +`" y2="` + outSockPos[1] + `" stroke-width="2" marker-end="" stroke-dasharray=""/>`
     }
   }
-  definitionInUpOutRight(inSockPos, outSockPos, inSockParent, outSockParent){ 
-    //Make right near node
+  definitionUpRight(inSockPos, outSockPos, inSockParent, outSockParent){ 
     if((inSockPos[1] + this.arrowIndent) > outSockPos[1]) {
       //Higher
-       if(inSockPos[0] > outSockPos[0]) {
-        //Left
+    if(inSockPos[0] > outSockPos[0]) {
+      //Left
       this.oneAngleArrow(inSockPos, outSockPos);
     } else {
       //Right
-      const halfGapY = Math.abs(inSockPos[1] - outSockParent.getAcrossYPosition()) / 2;
-      this.arrowLines = 
-        `<line x1="` + inSockPos[0] + `" y1="` + inSockPos[1] + `" x2="` + inSockPos[0] + `" y2="` + (inSockPos[1] - halfGapY) + `" stroke-width="2" marker-start="" stroke-dasharray=""/>
-        <line x1="` + inSockPos[0] + `" y1="` + (inSockPos[1] - halfGapY) + `" x2="` + (outSockPos[0] + this.arrowIndent) +`" y2="` + (inSockPos[1] - halfGapY) + `" stroke-width="2" stroke-dasharray=""/>
-        <line x1="` + (outSockPos[0] + this.arrowIndent) + `" y1="` + (inSockPos[1] - halfGapY) + `" x2="` + (outSockPos[0] + this.arrowIndent) +`" y2="` + outSockPos[1] + `" stroke-width="2" stroke-dasharray=""/>
-        <line x1="` + (outSockPos[0] + this.arrowIndent)  + `" y1="` + outSockPos[1] + `" x2="` + outSockPos[0] +`" y2="` + outSockPos[1] + `" stroke-width="2" marker-end="" stroke-dasharray=""/>` 
-    }
+      const halfGapX = Math.abs(inSockParent.getAcrossXPosition() - outSockParent.pos[0]) / 2;
+      this.envelopeHigherArrow(inSockPos, outSockPos, outSockParent.getAcrossYPosition(), (outSockPos[0] + this.arrowIndent), (inSockParent.getAcrossXPosition() + halfGapX))
+    } 
     } else {
       //Lower
       if(inSockPos[0] > outSockPos[0]) {
@@ -192,24 +189,91 @@ export class Connection {
         } else {
         //Right
         //Make under node
-        if ((outSockParent.pos[1] - this.arrowIndent) > inSockPos[1]){
+        if ((outSockParent.pos[1] - this.arrowIndent) < inSockPos[1]){        
+          this.arrowLines = `<line x1="` + inSockPos[0] + `" y1="` + inSockPos[1] + `" x2="` + inSockPos[0] + `" y2="` + (outSockParent.pos[1] - this.arrowIndent) + `" stroke-width="2" marker-start="" stroke-dasharray=""/>
+          <line x1="` + inSockPos[0] + `" y1="` + (outSockParent.pos[1] - this.arrowIndent) + `" x2="`;
+        } else {
           this.arrowLines = `<line x1="` + inSockPos[0] + `" y1="` + inSockPos[1] + `" x2="` + inSockPos[0] + `" y2="` + (inSockPos[1] - this.arrowIndent) + `" stroke-width="2" marker-start="" stroke-dasharray=""/>
           <line x1="` + inSockPos[0] + `" y1="` + (inSockPos[1] - this.arrowIndent) + `" x2="`;
+        }
           if(outSockPos[0] < inSockParent.getAcrossXPosition() - this.arrowIndent ) {
             //Under node
             this.arrowLines += (inSockParent.getAcrossXPosition() + this.arrowIndent) + `" y2="` + (inSockPos[1] - this.arrowIndent) + `" stroke-width="2" marker-start="" stroke-dasharray=""/>
             <line x1="` + (inSockParent.getAcrossXPosition() + this.arrowIndent) + `" y1="` + (inSockPos[1] - this.arrowIndent) + `" x2="` + (inSockParent.getAcrossXPosition() + this.arrowIndent) + `" y2="` + outSockPos[1] + `" stroke-width="2" stroke-dasharray=""/>
             <line x1="` + (inSockParent.getAcrossXPosition() + this.arrowIndent);
           } else {
-            console.log("out");
             //Out of node
-            this.arrowLines += (outSockPos[0] + this.arrowIndent) + `" y2="` + (inSockPos[1] - this.arrowIndent) + `" stroke-width="2" marker-start="" stroke-dasharray=""/>
-            <line x1="` + (outSockPos[0] + this.arrowIndent) + `" y1="` + (inSockPos[1] - this.arrowIndent) + `" x2="` + (outSockPos[0] + this.arrowIndent) + `" y2="` + outSockPos[1] + `" stroke-width="2" stroke-dasharray=""/>
+            console.log("out");
+            this.arrowLines += (outSockPos[0] + this.arrowIndent) + `" y2="`;
+            if ((outSockParent.pos[1] - this.arrowIndent) < inSockPos[1]){
+              this.arrowLines += (outSockParent.pos[1] - this.arrowIndent) + `" stroke-width="2" marker-start="" stroke-dasharray=""/>
+            <line x1="` + (outSockPos[0] + this.arrowIndent) + `" y1="` + (outSockParent.pos[1] - this.arrowIndent);
+            } else {
+              this.arrowLines += (inSockPos[1] - this.arrowIndent) + `" stroke-width="2" marker-start="" stroke-dasharray=""/>
+            <line x1="` + (outSockPos[0] + this.arrowIndent) + `" y1="` + (inSockPos[1] - this.arrowIndent);
+            }
+            this.arrowLines += `" x2="` + (outSockPos[0] + this.arrowIndent) + `" y2="` + outSockPos[1] + `" stroke-width="2" stroke-dasharray=""/>
             <line x1="` + (outSockPos[0] + this.arrowIndent);
           }
+
+      }
+      this.arrowLines += `" y1="` + outSockPos[1] + `" x2="` + outSockPos[0] +`" y2="` + outSockPos[1] + `" stroke-width="2" marker-end="" stroke-dasharray=""/>`;
+    }
+   
+  }
+  definitionUpLeft(inSockPos, outSockPos, inSockParent, outSockParent){ 
+    if((inSockPos[1] + this.arrowIndent) > outSockPos[1]) {
+      //Higher
+    if(inSockPos[0] > outSockPos[0]) {
+      //Left
+      const halfGapX = Math.abs(outSockParent.getAcrossXPosition() - inSockParent.pos[0]) / 2;
+      this.envelopeHigherArrow(inSockPos, outSockPos, outSockParent.getAcrossYPosition(), (outSockPos[0] - this.arrowIndent), (inSockParent.pos[0] - halfGapX))
+    } else {
+      //Right
+      this.oneAngleArrow(inSockPos, outSockPos);}
+    } else {
+      //Lower
+      if(inSockPos[0] > outSockPos[0]) {
+        this.arrowLines = `<line x1="` + inSockPos[0] + `" y1="` + inSockPos[1] + `" x2="` + inSockPos[0] + `" y2="` + (inSockPos[1] - this.arrowIndent) + `" stroke-width="2" marker-start="" stroke-dasharray=""/>
+        <line x1="` + inSockPos[0] + `" y1="` + (inSockPos[1] - this.arrowIndent) + `" x2="`;
+        //Left
+        if(outSockPos[0] + this.arrowIndent > inSockParent.pos[0] - this.arrowIndent) {
+        //Under node
+
         } else {
+          //Out of node
 
         }
+        } else {
+        //Right
+        //Make under node
+        if ((outSockParent.pos[1] - this.arrowIndent) < inSockPos[1]){        
+          this.arrowLines = `<line x1="` + inSockPos[0] + `" y1="` + inSockPos[1] + `" x2="` + inSockPos[0] + `" y2="` + (outSockParent.pos[1] - this.arrowIndent) + `" stroke-width="2" marker-start="" stroke-dasharray=""/>
+          <line x1="` + inSockPos[0] + `" y1="` + (outSockParent.pos[1] - this.arrowIndent) + `" x2="`;
+        } else {
+          this.arrowLines = `<line x1="` + inSockPos[0] + `" y1="` + inSockPos[1] + `" x2="` + inSockPos[0] + `" y2="` + (inSockPos[1] - this.arrowIndent) + `" stroke-width="2" marker-start="" stroke-dasharray=""/>
+          <line x1="` + inSockPos[0] + `" y1="` + (inSockPos[1] - this.arrowIndent) + `" x2="`;
+        }
+          if(outSockPos[0] < inSockParent.getAcrossXPosition() - this.arrowIndent ) {
+            //Under node
+            this.arrowLines += (inSockParent.getAcrossXPosition() + this.arrowIndent) + `" y2="` + (inSockPos[1] - this.arrowIndent) + `" stroke-width="2" marker-start="" stroke-dasharray=""/>
+            <line x1="` + (inSockParent.getAcrossXPosition() + this.arrowIndent) + `" y1="` + (inSockPos[1] - this.arrowIndent) + `" x2="` + (inSockParent.getAcrossXPosition() + this.arrowIndent) + `" y2="` + outSockPos[1] + `" stroke-width="2" stroke-dasharray=""/>
+            <line x1="` + (inSockParent.getAcrossXPosition() + this.arrowIndent);
+          } else {
+            //Out of node
+            console.log("out");
+            this.arrowLines += (outSockPos[0] + this.arrowIndent) + `" y2="`;
+            if ((outSockParent.pos[1] - this.arrowIndent) < inSockPos[1]){
+              this.arrowLines += (outSockParent.pos[1] - this.arrowIndent) + `" stroke-width="2" marker-start="" stroke-dasharray=""/>
+            <line x1="` + (outSockPos[0] + this.arrowIndent) + `" y1="` + (outSockParent.pos[1] - this.arrowIndent);
+            } else {
+              this.arrowLines += (inSockPos[1] - this.arrowIndent) + `" stroke-width="2" marker-start="" stroke-dasharray=""/>
+            <line x1="` + (outSockPos[0] + this.arrowIndent) + `" y1="` + (inSockPos[1] - this.arrowIndent);
+            }
+            this.arrowLines += `" x2="` + (outSockPos[0] + this.arrowIndent) + `" y2="` + outSockPos[1] + `" stroke-width="2" stroke-dasharray=""/>
+            <line x1="` + (outSockPos[0] + this.arrowIndent);
+          }
+
       }
       this.arrowLines += `" y1="` + outSockPos[1] + `" x2="` + outSockPos[0] +`" y2="` + outSockPos[1] + `" stroke-width="2" marker-end="" stroke-dasharray=""/>`;
     }
@@ -220,8 +284,23 @@ export class Connection {
         `<line x1="` + inSockPos[0] + `" y1="` + inSockPos[1] + `" x2="` + inSockPos[0] + `" y2="` + outSockPos[1] + `" stroke-width="2" marker-start="" stroke-dasharray=""/>
         <line x1="` + inSockPos[0]  + `" y1="` + outSockPos[1] + `" x2="` + outSockPos[0] +`" y2="` + outSockPos[1] + `" stroke-width="2" marker-end="" stroke-dasharray=""/>`
   }
-  definitionUpRight(){
-    
+  envelopeHigherArrow(inSockPos, outSockPos, outSockParentAcrossY, outIndentX, inBetweenX) {
+    if ((outSockParentAcrossY + this.arrowIndent) < inSockPos[1]) {  
+      const halfGapY = Math.abs(inSockPos[1] - outSockParentAcrossY) / 2;
+      this.arrowLines = 
+      `<line x1="` + inSockPos[0] + `" y1="` + inSockPos[1] + `" x2="` + inSockPos[0] + `" y2="` + (inSockPos[1] - halfGapY) + `" stroke-width="2" marker-start="" stroke-dasharray=""/>
+      <line x1="` + inSockPos[0] + `" y1="` + (inSockPos[1] - halfGapY) + `" x2="` + outIndentX +`" y2="` + (inSockPos[1] - halfGapY) + `" stroke-width="2" stroke-dasharray=""/>
+      <line x1="` + outIndentX + `" y1="` + (inSockPos[1] - halfGapY);
+    } else {
+      this.arrowLines = 
+      `<line x1="` + inSockPos[0] + `" y1="` + inSockPos[1] + `" x2="` + inSockPos[0] + `" y2="` + (inSockPos[1] - this.arrowIndent) + `" stroke-width="2" marker-start="" stroke-dasharray=""/>
+      <line x1="` + inSockPos[0] + `" y1="` + (inSockPos[1] - this.arrowIndent) + `" x2="` + inBetweenX +`" y2="` + (inSockPos[1] - this.arrowIndent) + `" stroke-width="2" stroke-dasharray=""/>
+      <line x1="` + inBetweenX + `" y1="` + (inSockPos[1] - this.arrowIndent) + `" x2="` + inBetweenX +`" y2="` + (outSockParentAcrossY + this.arrowIndent) + `" stroke-width="2" stroke-dasharray=""/>
+      <line x1="` + inBetweenX + `" y1="` + (outSockParentAcrossY + this.arrowIndent) + `" x2="` + outIndentX +`" y2="` + (outSockParentAcrossY + this.arrowIndent) + `" stroke-width="2" stroke-dasharray=""/>
+      <line x1="` + outIndentX + `" y1="` + (outSockParentAcrossY + this.arrowIndent);
+    } 
+    this.arrowLines += `" x2="` + outIndentX +`" y2="` + outSockPos[1] + `" stroke-width="2" stroke-dasharray=""/>
+    <line x1="` + outIndentX  + `" y1="` + outSockPos[1] + `" x2="` + outSockPos[0] +`" y2="` + outSockPos[1] + `" stroke-width="2" marker-end="" stroke-dasharray=""/>`;
   }
   destroy() {
     $(this.el).remove();
