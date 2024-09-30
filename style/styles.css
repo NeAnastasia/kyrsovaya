@@ -25,7 +25,7 @@ svg.node-connection {
   top: 0;
   left: 0;
   overflow: visible;
-  pointer-events: none;
+  /* pointer-events: none; */
 }
 
 svg.node-connection > path {

@@ -93,7 +93,6 @@ export class ArrowsMenu {
   }
 
   appearing(arrow, left, top) {
-    
     this.arrow = arrow;
     $(this.el).appendTo("#view-area")[0];
     $(this.el).on('blur', (e) => {
@@ -256,55 +255,54 @@ export class ArrowsMenu {
     document.getElementById("color-input").addEventListener("change", (e) => {
       this.arrow.changeColor(e.target.value);
     });
-
     this.dropdownMenu.forEach((element) => {
-      element.addEventListener("click", (e) => {
+      $(element).on("click", (e) => {
         e.stopPropagation();
         switch (element.id) {
           case "none-end":
-            arrow.changeArrowHeadEnd(ArrowType.None);
+            this.arrow.changeArrowHeadEnd(ArrowType.None);
             break;
           case "default-end":
-            arrow.changeArrowHeadEnd(ArrowType.DefaultEnd);
+            this.arrow.changeArrowHeadEnd(ArrowType.DefaultEnd);
             break;
           case "hollow-end":
-            arrow.changeArrowHeadEnd(ArrowType.HollowEnd);
+            this.arrow.changeArrowHeadEnd(ArrowType.HollowEnd);
             break;
           case "filled-end":
-            arrow.changeArrowHeadEnd(ArrowType.FilledEnd);
+            this.arrow.changeArrowHeadEnd(ArrowType.FilledEnd);
             break;
           case "rhombus-hollow-end":
-            arrow.changeArrowHeadEnd(ArrowType.RhombusHollow);
+            this.arrow.changeArrowHeadEnd(ArrowType.RhombusHollow);
             break;
           case "rhombus-end":
-            arrow.changeArrowHeadEnd(ArrowType.Rhombus);
+            this.arrow.changeArrowHeadEnd(ArrowType.Rhombus);
             break;
           case "none-start":
-            arrow.changeArrowHeadStart(ArrowType.None);
+            this.arrow.changeArrowHeadStart(ArrowType.None);
             break;
           case "default-start":
-            arrow.changeArrowHeadStart(ArrowType.DefaultStart);
+            this.arrow.changeArrowHeadStart(ArrowType.DefaultStart);
             break;
           case "hollow-start":
-            arrow.changeArrowHeadStart(ArrowType.HollowStart);
+            this.arrow.changeArrowHeadStart(ArrowType.HollowStart);
             break;
           case "filled-start":
-            arrow.changeArrowHeadStart(ArrowType.FilledStart);
+            this.arrow.changeArrowHeadStart(ArrowType.FilledStart);
             break;
           case "rhombus-hollow-start":
-            arrow.changeArrowHeadStart(ArrowType.RhombusHollow);
+            this.arrow.changeArrowHeadStart(ArrowType.RhombusHollow);
             break;
           case "rhombus-start":
-            arrow.changeArrowHeadStart(ArrowType.Rhombus);
+            this.arrow.changeArrowHeadStart(ArrowType.Rhombus);
             break;
           case "flat":
-            arrow.updateLine(false);
+            this.arrow.updateLine(false);
             break;
           case "dashed":
-            arrow.updateLine(true);
+            this.arrow.updateLine(true);
             break;
           default:
-            arrow.changeArrowHeadEnd(ArrowType.None);
+            this.arrow.changeArrowHeadEnd(ArrowType.None);
         }
       });
     });

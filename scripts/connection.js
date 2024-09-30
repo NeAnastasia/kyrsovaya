@@ -19,9 +19,9 @@ export class Connection {
     color = "#000000"
   ) {
     if (id !== "") {
-      this.idCon = parseInt(id.replace("connection-", ""), 10);
+      Connection.idCon = parseInt(id.replace("connection-", ""), 10);
     }
-    this.id = id === "" ? id : "connection-" + Connection.idCon;
+    this.id = id === "" ? "connection-" + Connection.idCon : id;
     this.color = color;
     Connection.idCon++;
     this.arrowLines = [];
@@ -74,33 +74,13 @@ export class Connection {
 
     //this.lineEl = $(this.el).find("line")[0];
     // this.lineClickEl = $(this.el).find("line")[1];
-    // this.markerELStart = $(this.el).find("marker")[0];
-    // $(this.markerELStart).attr("id", `arrowhead-${this.id}-start`);
-    // this.markerELEnd = $(this.el).find("marker")[1];
-    // $(this.markerELEnd).attr("id", `arrowhead-${this.id}-end`);
+    this.markerELStart = $(this.el).find("marker")[0];
+    $(this.markerELStart).attr("id", `arrowhead-${this.id}-start`);
+    this.markerELEnd = $(this.el).find("marker")[1];
+    $(this.markerELEnd).attr("id", `arrowhead-${this.id}-end`);
     // $(this.lineEl).attr("marker-end", `url(#arrowhead-${this.id}-end)`);
     // $(this.lineEl).attr("marker-start", `url(#arrowhead-${this.id}-start)`);
-    // this.lineClickEl.addEventListener("click", (e) => {
-    //   e.stopPropagation();
-    //   const r = View.singleton.el.getBoundingClientRect();
-    //   if (document.getElementById("menu")) {
-    //     var events = $._data(document.getElementById("menu"), "events");
-    //     if (events) {
-    //       $.each(events, function (evName, e) {
-    //         if (evName == "blur") {
-    //           $("#menu").off("blur");
-    //           return false;
-    //         }
-    //       });
-    //     }
-    //   }
-    //   ArrowsMenu.singleton.appearing(
-    //     this,
-    //     e.clientX - r.left,
-    //     e.clientY - r.top
-    //   );
-    // });
-    this.changeColor(this.color);
+    this.lineEls = $(this.el).find("line");
     this.update();
   }
   destroy() {
@@ -111,17 +91,22 @@ export class Connection {
   updateLine(isDashed) {
     this.isDashed = isDashed;
     if (this.isDashed) {
-      $(this.lineEls).attr("stroke-dasharray", 6);
+      for (var i = 0; i < this.lineEls.length; i++) {
+        $(this.lineEls[i]).attr("stroke-dasharray", 6);
+      }
     } else {
-      $(this.lineEls).attr("stroke-dasharray", 0);
+      for (var i = 0; i < this.lineEls.length; i++) {
+        $(this.lineEls[i]).attr("stroke-dasharray", 0);
+      }
     }
-    this.update();
   }
   changeArrowHeadEnd(type) {
+    console.log("endchange", this.id)
     this.arrowTypeEnd = type;
     this.update();
   }
   changeArrowHeadStart(type) {
+    console.log("startchange", this.id)
     this.arrowTypeStart = type;
     this.update();
   }
@@ -151,49 +136,141 @@ export class Connection {
         this.arrowTypeEnd = ArrowType.HollowEnd;
         break;
     }
-    this.update();
+    //this.update();
   }
-  changeColorArrowHead() {
-    if (this.arrowTypeStart === ArrowType.DefaultStart) {
-      $(this.el).find(
-        "#arrowhead-" + this.id + "-start polyline"
-      )[0].style.stroke = this.color;
-    } else if (this.arrowTypeStart !== ArrowType.None) {
-      $(this.el).find(
-        "#arrowhead-" + this.id + "-start polygon"
-      )[0].style.stroke = this.color;
+  changeColorArrowHead(arrowType) {
+    if (arrowType !== ArrowType.None) {
       if (
-        this.arrowTypeStart === ArrowType.FilledStart ||
-        this.arrowTypeStart === ArrowType.Rhombus
+        arrowType === ArrowType.DefaultStart ||
+        arrowType === ArrowType.DefaultEnd
       ) {
-        $(this.el).find(
-          "#arrowhead-" + this.id + "-start polygon"
-        )[0].style.fill = this.color;
-      }
-    }
-    if (this.arrowTypeEnd === ArrowType.DefaultEnd) {
-      $(this.el).find(
-        "#arrowhead-" + this.id + "-end polyline"
-      )[0].style.stroke = this.color;
-    } else if (this.arrowTypeEnd !== ArrowType.None) {
-      $(this.el).find(
-        "#arrowhead-" + this.id + "-end polygon"
-      )[0].style.stroke = this.color;
-      if (
-        this.arrowTypeEnd === ArrowType.FilledEnd ||
-        this.arrowTypeEnd === ArrowType.Rhombus
+        if (
+          $(this.el).find("#arrowhead-" + this.id + "-start polyline")[0] !==
+          undefined
+        ) {
+          $(this.el).find(
+            "#arrowhead-" + this.id + "-start polyline"
+          )[0].style.stroke = this.color;
+        } else {
+          $(this.el).find(
+            "#arrowhead-" + this.id + "-end polyline"
+          )[0].style.stroke = this.color;
+        }
+      } else if (
+        arrowType === ArrowType.FilledStart ||
+        arrowType === ArrowType.FilledEnd ||
+        arrowType === ArrowType.Rhombus
       ) {
-        $(this.el).find(
-          "#arrowhead-" + this.id + "-end polygon"
-        )[0].style.fill = this.color;
+        if (
+          $(this.el).find("#arrowhead-" + this.id + "-start polygon")[0] !==
+          undefined
+        ) {
+          $(this.el).find(
+            "#arrowhead-" + this.id + "-start polygon"
+          )[0].style.fill = this.color;
+        } else {
+          $(this.el).find(
+            "#arrowhead-" + this.id + "-end polygon"
+          )[0].style.fill = this.color;
+        }
+      } else {
+        if (
+          $(this.el).find("#arrowhead-" + this.id + "-start polygon")[0] !==
+          undefined
+        ) {
+          $(this.el).find(
+            "#arrowhead-" + this.id + "-start polygon"
+          )[0].style.stroke = this.color;
+        } else {
+          $(this.el).find(
+            "#arrowhead-" + this.id + "-end polygon"
+          )[0].style.stroke = this.color;
+        }
       }
     }
   }
   changeColor(color) {
     this.color = color;
     $(this.el).find("line").css("stroke", this.color);
-    //$('h1, h2, h3, h4, .contentheading, .title').css('color', 'red');
-    //this.update();
+    this.changeColorArrowHead(this.arrowTypeStart);
+    this.changeColorArrowHead(this.arrowTypeEnd);
+  }
+  checkIfEndAndStartArrowHeadsNeedToBeSwapped() {
+    if (
+      $(this.arrowLines[0]).attr("marker-start") ===
+      `url(#arrowhead-${this.id}-end)`
+    ) {
+      //console.log("MEW");
+      switch (this.arrowTypeEnd) {
+        case ArrowType.DefaultEnd:
+          this.arrowTypeEnd = ArrowType.DefaultStart;
+          break;
+        case ArrowType.FilledEnd:
+          this.arrowTypeEnd = ArrowType.FilledStart;
+          break;
+        case ArrowType.HollowEnd:
+          this.arrowTypeEnd = ArrowType.HollowStart;
+          break;
+      }
+      switch (this.arrowTypeStart) {
+        case ArrowType.DefaultStart:
+          this.arrowTypeStart = ArrowType.DefaultEnd;
+          break;
+        case ArrowType.FilledStart:
+          this.arrowTypeStart = ArrowType.FilledEnd;
+          break;
+        case ArrowType.HollowStart:
+          this.arrowTypeStart = ArrowType.HollowEnd;
+          break;
+      }
+    }
+  }
+  checkIfArrowsNeedToBeChanged() {
+    if (this.arrowTypeEnd != this.parrowTypeEnd) {
+      $(this.el).find("marker")[1].innerHTML = this.arrowTypeEnd;
+      this.parrowTypeEnd = this.arrowTypeEnd;
+    }
+    if (this.arrowTypeStart != this.parrowTypeStart) {
+      $(this.el).find("marker")[0].innerHTML = this.arrowTypeStart;
+      this.parrowTypeStart = this.arrowTypeStart;
+    }
+    if (this.arrowTypeEnd == ArrowType.DefaultEnd) {
+      //console.log("meowmeow");
+      $(this.markerELEnd).attr("refX", `10`);
+    } else {
+      $(this.markerELEnd).attr("refX", `0`);
+    }
+    if (this.arrowTypeStart != ArrowType.DefaultStart) {
+      $(this.markerELStart).attr("refX", `10`);
+    } else {
+      $(this.markerELStart).attr("refX", `0`);
+    }
+    for (var i = 0; i < this.arrowLines.length; i++) {
+      $(this.el).append(this.arrowLines[i]);
+    }
+  }
+  addClickEventToLines() {
+    $(this.lineEls).click((e) => {
+      e.stopPropagation();
+      const r = View.singleton.el.getBoundingClientRect();
+      if (document.getElementById("menu")) {
+        var events = $._data(document.getElementById("menu"), "events");
+        if (events) {
+          $.each(events, function (evName, e) {
+            if (evName == "blur") {
+              $("#menu").off("blur");
+              return false;
+            }
+          });
+        }
+      }
+      ArrowsMenu.singleton.appearing(
+        this,
+        e.clientX - r.left,
+        e.clientY - r.top
+      );
+    });
+    console.log("--------------------------------")
   }
   update() {
     this.spanIn.style.left = this.inSock.getAbsolutePosition()[0] + "px";
@@ -216,36 +293,20 @@ export class Connection {
     // $(this.lineClickEl).attr("y1", `${inSockPos[1]}`);
     // $(this.lineClickEl).attr("x2", `${outSockPos[0]}`);
     // $(this.lineClickEl).attr("y2", `${outSockPos[1]}`);
-    // if (this.arrowTypeEnd != this.parrowTypeEnd) {
-    //   $(this.el).find("marker")[1].innerHTML = this.arrowTypeEnd;
-    //   this.parrowTypeEnd = this.arrowTypeEnd;
-    // }
-    // if (this.arrowTypeStart != this.parrowTypeStart) {
-    //   $(this.el).find("marker")[0].innerHTML = this.arrowTypeStart;
-    //   this.parrowTypeStart = this.arrowTypeStart;
-    // }
-    // if (this.arrowTypeEnd == ArrowType.DefaultEnd) {
-    //   $(this.markerELEnd).attr("refX", `10`);
-    // } else {
-    //   $(this.markerELEnd).attr("refX", `0`);
-    // }
-    // if (this.arrowTypeStart != ArrowType.DefaultStart) {
-    //   $(this.markerELStart).attr("refX", `10`);
-    // } else {
-    //   $(this.markerELStart).attr("refX", `0`);
-    // }
-    // this.changeColorArrowHead();
     this.arrowLines = ArrowsCreatingPath.singleton.creatingPath(
       this.inSock,
-      this.outSock
+      this.outSock,
+      this.isDashed,
+      this.id
     );
-    this.lineEls = $(this.el).find("line");
     $(this.lineEls).remove();
-    for (var i = 0; i < this.arrowLines.length; i++) {
-      $(this.el).append(this.arrowLines[i]);
-    }
+    this.checkIfEndAndStartArrowHeadsNeedToBeSwapped();
+    this.checkIfArrowsNeedToBeChanged();
+    this.lineEls = $(this.el).find("line");
+    this.addClickEventToLines();
     this.changeColor(this.color);
     this.arrowLines = [];
+    console.log("______________________")
   }
   toJSON() {
     return {

@@ -1,14 +1,20 @@
 export class ArrowsCreatingPath {
   static singleton = new ArrowsCreatingPath();
 
-  constructor(){
+  constructor() {
     this.arrowLines = [];
-    this.arrowIndent = 15;
+    this.arrowIndent = 20;
+    this.isDashed = false;
   }
   createSVGLine(obj) {
     let el = document.createElementNS("http://www.w3.org/2000/svg", "line");
     this.setAttributesForElement(el, obj);
     el.setAttribute("stroke-width", 2);
+    if (this.isDashed) {
+      el.setAttribute("stroke-dasharray", 6);
+    } else {
+      el.setAttribute("stroke-dasharray", 0);
+    }
     return el;
   }
   setAttributesForElement(el, obj) {
@@ -16,7 +22,22 @@ export class ArrowsCreatingPath {
       el.setAttribute(prop, obj[prop]);
     }
   }
-  creatingPath(inSock, outSock) {
+  setArrow0StartEndEnd(id) {
+    $(this.arrowLines[0]).attr("marker-start", `url(#arrowhead-${id}-start)`);
+    $(this.arrowLines[this.arrowLines.length - 1]).attr(
+      "marker-end",
+      `url(#arrowhead-${id}-end)`
+    );
+  }
+  setArrow0EndEndStart(id) {
+    $(this.arrowLines[0]).attr("marker-start", `url(#arrowhead-${id}-end)`);
+    $(this.arrowLines[this.arrowLines.length - 1]).attr(
+      "marker-end",
+      `url(#arrowhead-${id}-start)`
+    );
+  }
+  creatingPath(inSock, outSock, isDashed, id) {
+    this.isDashed = isDashed;
     const inSockPos = inSock.getAbsolutePosition();
     const outSockPos = outSock.getAbsolutePosition();
     const inSockParent = inSock.parent;
@@ -33,6 +54,7 @@ export class ArrowsCreatingPath {
           inSockParent,
           outSockParent
         );
+        this.setArrow0StartEndEnd(id);
       } else if (outSock.isLeft()) {
         this.definitionUpLeft(
           inSockPos,
@@ -40,6 +62,7 @@ export class ArrowsCreatingPath {
           inSockParent,
           outSockParent
         );
+        this.setArrow0StartEndEnd(id);
       } else if (outSock.isDown()) {
         this.definitionUpDown(
           inSockPos,
@@ -47,6 +70,7 @@ export class ArrowsCreatingPath {
           inSockParent,
           outSockParent
         );
+        this.setArrow0StartEndEnd(id);
       }
     } else if (inSock.isRight()) {
       if (outSock.isUp()) {
@@ -56,6 +80,7 @@ export class ArrowsCreatingPath {
           outSockParent,
           inSockParent
         );
+        this.setArrow0EndEndStart(id);
       } else if (outSock.isRight()) {
         this.definitionRightRight(
           outSockPos,
@@ -63,6 +88,7 @@ export class ArrowsCreatingPath {
           outSockParent,
           inSockParent
         );
+        this.setArrow0EndEndStart(id);
       } else if (outSock.isLeft()) {
         this.definitionRightLeft(
           inSockPos,
@@ -70,6 +96,7 @@ export class ArrowsCreatingPath {
           inSockParent,
           outSockParent
         );
+        this.setArrow0StartEndEnd(id);
       } else if (outSock.isDown()) {
         this.definitionDownRight(
           outSockPos,
@@ -77,6 +104,7 @@ export class ArrowsCreatingPath {
           outSockParent,
           inSockParent
         );
+        this.setArrow0EndEndStart(id);
       }
     } else if (inSock.isLeft()) {
       if (outSock.isUp()) {
@@ -86,6 +114,7 @@ export class ArrowsCreatingPath {
           outSockParent,
           inSockParent
         );
+        this.setArrow0EndEndStart(id);
       } else if (outSock.isRight()) {
         this.definitionRightLeft(
           outSockPos,
@@ -93,6 +122,7 @@ export class ArrowsCreatingPath {
           outSockParent,
           inSockParent
         );
+        this.setArrow0EndEndStart(id);
       } else if (outSock.isLeft()) {
         this.definitionLeftLeft(
           inSockPos,
@@ -100,6 +130,7 @@ export class ArrowsCreatingPath {
           inSockParent,
           outSockParent
         );
+        this.setArrow0StartEndEnd(id);
       } else if (outSock.isDown()) {
         this.definitionDownLeft(
           outSockPos,
@@ -107,6 +138,7 @@ export class ArrowsCreatingPath {
           outSockParent,
           inSockParent
         );
+        this.setArrow0EndEndStart(id);
       }
     } else if (inSock.isDown()) {
       if (outSock.isUp()) {
@@ -116,6 +148,7 @@ export class ArrowsCreatingPath {
           outSockParent,
           inSockParent
         );
+        this.setArrow0EndEndStart(id);
       } else if (outSock.isRight()) {
         this.definitionDownRight(
           inSockPos,
@@ -123,6 +156,7 @@ export class ArrowsCreatingPath {
           inSockParent,
           outSockParent
         );
+        this.setArrow0StartEndEnd(id);
       } else if (outSock.isLeft()) {
         this.definitionDownLeft(
           inSockPos,
@@ -130,6 +164,7 @@ export class ArrowsCreatingPath {
           inSockParent,
           outSockParent
         );
+        this.setArrow0StartEndEnd(id);
       } else if (outSock.isDown()) {
         this.definitionDownDown(
           inSockPos,
@@ -137,6 +172,7 @@ export class ArrowsCreatingPath {
           inSockParent,
           outSockParent
         );
+        this.setArrow0StartEndEnd(id);
       }
     }
 
