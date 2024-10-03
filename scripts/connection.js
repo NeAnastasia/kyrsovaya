@@ -24,6 +24,7 @@ export class Connection {
     this.id = id === "" ? "connection-" + Connection.idCon : id;
     this.color = color;
     Connection.idCon++;
+    this.isArrowsReversed = false;
     this.arrowLines = [];
     this.isDashed = isDashed;
     this.inSock = inSock;
@@ -65,6 +66,7 @@ export class Connection {
         `</marker>
       </defs>
       <line> </line>
+      <line class="arrow> </line>
       </svg>`
       // <line x1="0" y1="0" x2="0" y2="0" stroke-width="2" marker-end="" marker-start="" stroke-dasharray=""/>
       // <line x1="0" y1="0" x2="0" y2="0" stroke-width="20" class="arrow"/>
@@ -78,8 +80,6 @@ export class Connection {
     $(this.markerELStart).attr("id", `arrowhead-${this.id}-start`);
     this.markerELEnd = $(this.el).find("marker")[1];
     $(this.markerELEnd).attr("id", `arrowhead-${this.id}-end`);
-    // $(this.lineEl).attr("marker-end", `url(#arrowhead-${this.id}-end)`);
-    // $(this.lineEl).attr("marker-start", `url(#arrowhead-${this.id}-start)`);
     this.lineEls = $(this.el).find("line");
     this.update();
   }
@@ -101,12 +101,10 @@ export class Connection {
     }
   }
   changeArrowHeadEnd(type) {
-    console.log("endchange", this.id)
     this.arrowTypeEnd = type;
     this.update();
   }
   changeArrowHeadStart(type) {
-    console.log("startchange", this.id)
     this.arrowTypeStart = type;
     this.update();
   }
@@ -136,71 +134,65 @@ export class Connection {
         this.arrowTypeEnd = ArrowType.HollowEnd;
         break;
     }
-    //this.update();
+    this.update();
   }
-  changeColorArrowHead(arrowType) {
-    if (arrowType !== ArrowType.None) {
+  changeColorArrowHead() {
+    if (this.arrowTypeEnd !== ArrowType.None) {
       if (
-        arrowType === ArrowType.DefaultStart ||
-        arrowType === ArrowType.DefaultEnd
+        this.arrowTypeEnd === ArrowType.DefaultStart ||
+        this.arrowTypeEnd === ArrowType.DefaultEnd
       ) {
-        if (
-          $(this.el).find("#arrowhead-" + this.id + "-start polyline")[0] !==
-          undefined
-        ) {
-          $(this.el).find(
-            "#arrowhead-" + this.id + "-start polyline"
-          )[0].style.stroke = this.color;
-        } else {
-          $(this.el).find(
-            "#arrowhead-" + this.id + "-end polyline"
-          )[0].style.stroke = this.color;
-        }
+        $(this.el).find(
+          "#arrowhead-" + this.id + "-end polyline"
+        )[0].style.stroke = this.color;
       } else if (
-        arrowType === ArrowType.FilledStart ||
-        arrowType === ArrowType.FilledEnd ||
-        arrowType === ArrowType.Rhombus
+        this.arrowTypeEnd === ArrowType.FilledStart ||
+        this.arrowTypeEnd === ArrowType.FilledEnd ||
+        this.arrowTypeEnd === ArrowType.Rhombus
       ) {
-        if (
-          $(this.el).find("#arrowhead-" + this.id + "-start polygon")[0] !==
-          undefined
-        ) {
-          $(this.el).find(
-            "#arrowhead-" + this.id + "-start polygon"
-          )[0].style.fill = this.color;
-        } else {
-          $(this.el).find(
-            "#arrowhead-" + this.id + "-end polygon"
-          )[0].style.fill = this.color;
-        }
+        $(this.el).find(
+          "#arrowhead-" + this.id + "-end polygon"
+        )[0].style.fill = this.color;
       } else {
-        if (
-          $(this.el).find("#arrowhead-" + this.id + "-start polygon")[0] !==
-          undefined
-        ) {
-          $(this.el).find(
-            "#arrowhead-" + this.id + "-start polygon"
-          )[0].style.stroke = this.color;
-        } else {
-          $(this.el).find(
-            "#arrowhead-" + this.id + "-end polygon"
-          )[0].style.stroke = this.color;
-        }
+        $(this.el).find(
+          "#arrowhead-" + this.id + "-end polygon"
+        )[0].style.stroke = this.color;
+      }
+    }
+    if (this.arrowTypeStart !== ArrowType.None) {
+      if (
+        this.arrowTypeStart === ArrowType.DefaultStart ||
+        this.arrowTypeStart === ArrowType.DefaultEnd
+      ) {
+        $(this.el).find(
+          "#arrowhead-" + this.id + "-start polyline"
+        )[0].style.stroke = this.color;
+      } else if (
+        this.arrowTypeStart === ArrowType.FilledStart ||
+        this.arrowTypeStart === ArrowType.FilledEnd ||
+        this.arrowTypeStart === ArrowType.Rhombus
+      ) {
+        $(this.el).find(
+          "#arrowhead-" + this.id + "-start polygon"
+        )[0].style.fill = this.color;
+      } else {
+        $(this.el).find(
+          "#arrowhead-" + this.id + "-start polygon"
+        )[0].style.stroke = this.color;
       }
     }
   }
   changeColor(color) {
     this.color = color;
-    $(this.el).find("line").css("stroke", this.color);
-    this.changeColorArrowHead(this.arrowTypeStart);
-    this.changeColorArrowHead(this.arrowTypeEnd);
+    $(this.arrowLines).css("stroke", this.color);
+    this.changeColorArrowHead();
   }
   checkIfEndAndStartArrowHeadsNeedToBeSwapped() {
     if (
       $(this.arrowLines[0]).attr("marker-start") ===
       `url(#arrowhead-${this.id}-end)`
     ) {
-      //console.log("MEW");
+      this.isArrowsReversed = true;
       switch (this.arrowTypeEnd) {
         case ArrowType.DefaultEnd:
           this.arrowTypeEnd = ArrowType.DefaultStart;
@@ -234,19 +226,28 @@ export class Connection {
       $(this.el).find("marker")[0].innerHTML = this.arrowTypeStart;
       this.parrowTypeStart = this.arrowTypeStart;
     }
-    if (this.arrowTypeEnd == ArrowType.DefaultEnd) {
-      //console.log("meowmeow");
-      $(this.markerELEnd).attr("refX", `10`);
+    if (this.isArrowsReversed) {
+      if (this.arrowTypeEnd != ArrowType.DefaultStart) {
+        $(this.markerELEnd).attr("refX", `10`);
+      } else {
+        $(this.markerELEnd).attr("refX", `0`);
+      }
+      if (this.arrowTypeStart == ArrowType.DefaultEnd) {
+        $(this.markerELStart).attr("refX", `10`);
+      } else {
+        $(this.markerELStart).attr("refX", `0`);
+      }
     } else {
-      $(this.markerELEnd).attr("refX", `0`);
-    }
-    if (this.arrowTypeStart != ArrowType.DefaultStart) {
-      $(this.markerELStart).attr("refX", `10`);
-    } else {
-      $(this.markerELStart).attr("refX", `0`);
-    }
-    for (var i = 0; i < this.arrowLines.length; i++) {
-      $(this.el).append(this.arrowLines[i]);
+      if (this.arrowTypeEnd == ArrowType.DefaultEnd) {
+        $(this.markerELEnd).attr("refX", `10`);
+      } else {
+        $(this.markerELEnd).attr("refX", `0`);
+      }
+      if (this.arrowTypeStart != ArrowType.DefaultStart) {
+        $(this.markerELStart).attr("refX", `10`);
+      } else {
+        $(this.markerELStart).attr("refX", `0`);
+      }
     }
   }
   addClickEventToLines() {
@@ -270,7 +271,6 @@ export class Connection {
         e.clientY - r.top
       );
     });
-    console.log("--------------------------------")
   }
   update() {
     this.spanIn.style.left = this.inSock.getAbsolutePosition()[0] + "px";
@@ -287,8 +287,6 @@ export class Connection {
     //     this.outSock.getAbsolutePosition()[1]) /
     //     2 +
     //   "px";
-    // const inSockPos = this.inSock.getAbsolutePosition();
-    // const outSockPos = this.outSock.getAbsolutePosition();
     // $(this.lineClickEl).attr("x1", `${inSockPos[0]}`);
     // $(this.lineClickEl).attr("y1", `${inSockPos[1]}`);
     // $(this.lineClickEl).attr("x2", `${outSockPos[0]}`);
@@ -302,11 +300,27 @@ export class Connection {
     $(this.lineEls).remove();
     this.checkIfEndAndStartArrowHeadsNeedToBeSwapped();
     this.checkIfArrowsNeedToBeChanged();
+    for (var i = 0; i < this.arrowLines.length; i++) {
+      $(this.el).append(this.arrowLines[i]);
+      // $(this.arrowLines[i]).attr("stroke-width", 10);
+      // $(this.arrowLines[i]).addClass("arrow");
+      const clickLine = $(this.arrowLines[i])
+        .clone()
+        .attr("stroke-width", 10)
+        .addClass("arrow")
+        .css("stroke", "");
+        if(clickLine.attr("marker-start") !== undefined) {
+          clickLine.attr("marker-start", "")
+        }
+        if(clickLine.attr("marker-end") !== undefined) {
+          clickLine.attr("marker-end", "")
+        }
+      $(this.el).append(clickLine);
+    }
+    this.changeColor(this.color);
     this.lineEls = $(this.el).find("line");
     this.addClickEventToLines();
-    this.changeColor(this.color);
     this.arrowLines = [];
-    console.log("______________________")
   }
   toJSON() {
     return {

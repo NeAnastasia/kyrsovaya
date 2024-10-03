@@ -95,7 +95,7 @@ export class ArrowsMenu {
   appearing(arrow, left, top) {
     this.arrow = arrow;
     $(this.el).appendTo("#view-area")[0];
-    $(this.el).on('blur', (e) => {
+    $(this.el).on("blur", (e) => {
       if (
         e.relatedTarget &&
         (e.relatedTarget ===
@@ -108,7 +108,7 @@ export class ArrowsMenu {
         e.target.addEventListener("blur", (e) => {}, { once: true });
         return;
       }
-        this.deleteMenu();
+      this.deleteMenu();
     });
     document.getElementById("menu").style["top"] = top + "px";
     document.getElementById("menu").style["left"] = left + "px";
@@ -195,29 +195,23 @@ export class ArrowsMenu {
       }
     });
 
-    document
-      .getElementById("input-cardinal-number-1")
-      .addEventListener("input", (e) => {
-        this.arrow.spanIn.textContent = $(
-          document.getElementById("input-cardinal-number-1")
-        ).val();
-      });
+    $(document.getElementById("input-cardinal-number-1")).on("input", (e) => {
+      this.arrow.spanIn.textContent = $(
+        document.getElementById("input-cardinal-number-1")
+      ).val();
+    });
 
-    document
-      .getElementById("input-cardinal-number-2")
-      .addEventListener("input", (e) => {
-        this.arrow.spanCenter.textContent = $(
-          document.getElementById("input-cardinal-number-2")
-        ).val();
-      });
+    $(document.getElementById("input-cardinal-number-2")).on("input", (e) => {
+      this.arrow.spanCenter.textContent = $(
+        document.getElementById("input-cardinal-number-2")
+      ).val();
+    });
 
-    document
-      .getElementById("input-cardinal-number-3")
-      .addEventListener("input", (e) => {
-        this.arrow.spanOut.textContent = $(
-          document.getElementById("input-cardinal-number-3")
-        ).val();
-      });
+    $(document.getElementById("input-cardinal-number-3")).on("input", (e) => {
+      this.arrow.spanOut.textContent = $(
+        document.getElementById("input-cardinal-number-3")
+      ).val();
+    });
 
     $(document.getElementById("input-cardinal-number-2")).blur((e) => {
       if (
@@ -252,7 +246,7 @@ export class ArrowsMenu {
       this.arrow.reverseArrowHeads();
     });
 
-    document.getElementById("color-input").addEventListener("change", (e) => {
+    $(document.getElementById("color-input")).on("change", (e) => {
       this.arrow.changeColor(e.target.value);
     });
     this.dropdownMenu.forEach((element) => {
