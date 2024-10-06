@@ -28,12 +28,12 @@ export class Node {
       Node.idC++;
     } else {
       this.id = id;
-      Node.idC = parseInt(id.replace('node-',''), 10);
+      Node.idC = parseInt(id.replace("node-", ""), 10);
       Node.idC = Node.idC + 1;
     }
     this.type = type;
     this.ptype = this.type;
-    Node.nodes[parseInt(id.replace('node-',''), 10)] = this;
+    Node.nodes[parseInt(id.replace("node-", ""), 10)] = this;
     this.templateName = Node.deductTemplate(this.type);
     this.el = $($(`#${this.templateName}`).html())[0];
     this.drag = new Draggable(
@@ -47,7 +47,11 @@ export class Node {
     this.pressType = 0;
 
     this.sockets = {
-      up: new Socket($(this.el).find(".node-connection-socket.up")[0], this, "up"),
+      up: new Socket(
+        $(this.el).find(".node-connection-socket.up")[0],
+        this,
+        "up"
+      ),
       upright: new Socket(
         $(this.el).find(".node-connection-socket.upright")[0],
         this,
@@ -113,24 +117,28 @@ export class Node {
         e.stopPropagation();
       }
     });
-    this.textEl.addEventListener("dblclick", (e) => {
+    $(this.textEl).click((e) => {
+      if ($(".text-menu").length === 0) {
+        TextMenu.singleton.appearing(e.target.classList, e.target);
+      } else {
+        TextMenu.singleton.changeObject(e.target.classList, e.target);
+      }
       $(this.textEl).attr("contenteditable", true);
       this.textEl.focus();
-      TextMenu.singleton.appearing(e.target.classList, e.target);
       window.getSelection().selectAllChildren(this.textEl);
     });
     $(document.getElementsByClassName("node-text-content")).click((e) => {
       e.stopPropagation();
-      TextMenu.singleton.appearing(e.target.classList, e.target);
+      if ($(".text-menu").length === 0) {
+        TextMenu.singleton.appearing(e.target.classList, e.target);
+      } else {
+        TextMenu.singleton.changeObject(e.target.classList, e.target);
+      }
     });
-    this.textEl.addEventListener("focusout", (e) => {
+    $(this.textEl).on("focusout", (e) => {
       this.onRename(e);
-      TextMenu.singleton.deleteMenu();
       $(this.textEl).attr("contenteditable", false);
       window.dispatchEvent(new Event("viewupdate"));
-    });
-    $(document.getElementsByClassName("node-text-content")).focusout(() => {
-      TextMenu.singleton.deleteMenu();
     });
     this.textEl.addEventListener("input", (e) => {
       this.onRename(e);
@@ -298,30 +306,17 @@ export class Node {
     switch (tname) {
       case "default":
         {
-          node = new RectNode(
-            json.text,
-            json.type,
-            json.id
-          );
+          node = new RectNode(json.text, json.type, json.id);
         }
         break;
       case "rhombus":
         {
-          node = new RhombusNode(
-            json.text,
-            json.type,
-            json.id
-          );
+          node = new RhombusNode(json.text, json.type, json.id);
         }
         break;
       case "object":
         {
-          node = new ObjectNode(
-            json.text,
-            json.type,
-            json.id,
-            json.content1
-          );
+          node = new ObjectNode(json.text, json.type, json.id, json.content1);
         }
         break;
       case "class":
@@ -338,11 +333,7 @@ export class Node {
 
       default:
         {
-          node = new Node(
-            json.text,
-            json.type,
-            json.id
-          );
+          node = new Node(json.text, json.type, json.id);
         }
         break;
     }
@@ -469,7 +460,6 @@ class ObjectNode extends Node {
   }
 
   onContentEdited(e) {
-    // this.textContent = this.textContentEl.html().replaceAll("<br>", "\n")
     this.update();
   }
 
@@ -570,8 +560,6 @@ class ClassNode extends Node {
     this.checkPlus();
   }
   checkPlus() {
-    //this.textContent1 = this.textContent1.replaceAll(/(^)(?!\+)/gm, "$1+ ").replaceAll(/(^\+)(?! )/gm, "$1 ")
-    //this.textContent2 = this.textContent2.replaceAll(/(^)(?!\+)/gm, "$1+ ").replaceAll(/(^\+)(?! )/gm, "$1 ")
     this.update();
   }
   get totalWidth() {

@@ -35,24 +35,14 @@ export class Connection {
     this.arrowTypeEnd = arrowTypeEnd;
     this.spanIn = document.createElement("span");
     this.spanIn.style.position = "absolute";
-    this.spanIn.style.left = inSock.getAbsolutePosition()[0] + "px";
-    this.spanIn.style.top = inSock.getAbsolutePosition()[1] + "px";
     this.spanIn.textContent = textStart;
     $(this.spanIn).appendTo("#view-area")[0];
     this.spanOut = document.createElement("span");
     this.spanOut.style.position = "absolute";
-    this.spanOut.style.left = outSock.getAbsolutePosition()[0] + "px";
-    this.spanOut.style.top = outSock.getAbsolutePosition()[1] + "px";
     this.spanOut.textContent = textEnd;
     $(this.spanOut).appendTo("#view-area")[0];
     this.spanCenter = document.createElement("span");
     this.spanCenter.style.position = "absolute";
-    this.spanCenter.style.left =
-      (inSock.getAbsolutePosition()[0] + outSock.getAbsolutePosition()[0]) / 2 +
-      "px";
-    this.spanCenter.style.top =
-      (inSock.getAbsolutePosition()[1] + outSock.getAbsolutePosition()[1]) / 2 +
-      "px";
     this.spanCenter.textContent = textCenter;
     $(this.spanCenter).appendTo("#view-area")[0];
     this.el = $(
@@ -66,25 +56,23 @@ export class Connection {
         `</marker>
       </defs>
       <line> </line>
-      <line class="arrow> </line>
+      <line class="arrow"> </line>
       </svg>`
-      // <line x1="0" y1="0" x2="0" y2="0" stroke-width="2" marker-end="" marker-start="" stroke-dasharray=""/>
-      // <line x1="0" y1="0" x2="0" y2="0" stroke-width="20" class="arrow"/>
     ).appendTo("#view-area")[0];
     $(this.el).attr("id", this.id);
     this.lineEls = $(this.el).find("line");
-
-    //this.lineEl = $(this.el).find("line")[0];
-    // this.lineClickEl = $(this.el).find("line")[1];
     this.markerELStart = $(this.el).find("marker")[0];
     $(this.markerELStart).attr("id", `arrowhead-${this.id}-start`);
     this.markerELEnd = $(this.el).find("marker")[1];
     $(this.markerELEnd).attr("id", `arrowhead-${this.id}-end`);
-    this.lineEls = $(this.el).find("line");
+    this.lineClickEls = $(this.el).find(".arrow");
     this.update();
   }
   destroy() {
     $(this.el).remove();
+    $(this.spanIn).remove();
+    $(this.spanOut).remove();
+    $(this.spanCenter).remove();
     this.inSock.removeConnection(this);
     this.outSock.removeConnection(this);
   }
@@ -184,7 +172,7 @@ export class Connection {
   }
   changeColor(color) {
     this.color = color;
-    $(this.arrowLines).css("stroke", this.color);
+    $(this.lineEls).css("stroke", this.color);
     this.changeColorArrowHead();
   }
   checkIfEndAndStartArrowHeadsNeedToBeSwapped() {
@@ -251,7 +239,8 @@ export class Connection {
     }
   }
   addClickEventToLines() {
-    $(this.lineEls).click((e) => {
+    $(this.lineClickEls).click((e) => {
+      console.log("a")
       e.stopPropagation();
       const r = View.singleton.el.getBoundingClientRect();
       if (document.getElementById("menu")) {
@@ -277,48 +266,50 @@ export class Connection {
     this.spanIn.style.top = this.inSock.getAbsolutePosition()[1] + "px";
     this.spanOut.style.left = this.outSock.getAbsolutePosition()[0] + "px";
     this.spanOut.style.top = this.outSock.getAbsolutePosition()[1] + "px";
-    // this.spanCenter.style.left =
-    //   (this.inSock.getAbsolutePosition()[0] +
-    //     this.outSock.getAbsolutePosition()[0]) /
-    //     2 +
-    //   "px";
-    // this.spanCenter.style.top =
-    //   (this.inSock.getAbsolutePosition()[1] +
-    //     this.outSock.getAbsolutePosition()[1]) /
-    //     2 +
-    //   "px";
-    // $(this.lineClickEl).attr("x1", `${inSockPos[0]}`);
-    // $(this.lineClickEl).attr("y1", `${inSockPos[1]}`);
-    // $(this.lineClickEl).attr("x2", `${outSockPos[0]}`);
-    // $(this.lineClickEl).attr("y2", `${outSockPos[1]}`);
     this.arrowLines = ArrowsCreatingPath.singleton.creatingPath(
       this.inSock,
       this.outSock,
       this.isDashed,
       this.id
     );
+    if (this.arrowLines.length === 2) {
+      this.spanCenter.style.left = $(this.arrowLines[0]).attr("x2") + "px";
+      this.spanCenter.style.top = $(this.arrowLines[0]).attr("y2") + "px";
+    } else {
+      const index = Math.floor(this.arrowLines.length / 2);
+      this.spanCenter.style.left =
+        (parseInt($(this.arrowLines[index]).attr("x2")) +
+          parseInt($(this.arrowLines[index]).attr("x1"))) /
+          2 +
+        "px";
+      this.spanCenter.style.top =
+        (parseInt($(this.arrowLines[index]).attr("y2")) +
+          parseInt($(this.arrowLines[index]).attr("y1"))) /
+          2 +
+        "px";
+    }
     $(this.lineEls).remove();
+    $(this.lineClickEls).remove();
     this.checkIfEndAndStartArrowHeadsNeedToBeSwapped();
     this.checkIfArrowsNeedToBeChanged();
     for (var i = 0; i < this.arrowLines.length; i++) {
       $(this.el).append(this.arrowLines[i]);
-      // $(this.arrowLines[i]).attr("stroke-width", 10);
-      // $(this.arrowLines[i]).addClass("arrow");
       const clickLine = $(this.arrowLines[i])
         .clone()
         .attr("stroke-width", 10)
-        .addClass("arrow")
-        .css("stroke", "");
-        if(clickLine.attr("marker-start") !== undefined) {
-          clickLine.attr("marker-start", "")
-        }
-        if(clickLine.attr("marker-end") !== undefined) {
-          clickLine.attr("marker-end", "")
-        }
+        .addClass("arrow");
+      if (clickLine.attr("marker-start") !== undefined) {
+        clickLine.attr("marker-start", "");
+      }
+      if (clickLine.attr("marker-end") !== undefined) {
+        clickLine.attr("marker-end", "");
+      }
       $(this.el).append(clickLine);
     }
+    this.lineEls = $(this.el).find("line").not(".arrow");
     this.changeColor(this.color);
-    this.lineEls = $(this.el).find("line");
+    this.lineClickEls = $(this.el).find(".arrow");
+    console.log(this.lineClickEls)
     this.addClickEventToLines();
     this.arrowLines = [];
   }

@@ -1,35 +1,35 @@
-export class Selection{
-    static singleton = new Selection();
-    constructor(){
-        this.els = []
+export class Selection {
+  static singleton = new Selection();
+  constructor() {
+    this.els = [];
+  }
+  add(node) {
+    this.els.push(node);
+    return this;
+  }
+  clear() {
+    while (this.els.length) {
+      this.removeAt(0);
     }
-    add(node){
-        this.els.push(node);
-        return this;
+
+    return this;
+  }
+  removeAt(index) {
+    const node = this.els.splice(index, 1);
+    node[0].el.classList.remove("selected");
+    return this;
+  }
+  has(item) {
+    return this.els.indexOf(item) != -1;
+  }
+  moveAll(delta) {
+    for (const el of this.els) {
+      el.moveOn(delta);
     }
-    clear(){
-        while(this.els.length){
-            this.removeAt(0)
-        }
-        
-        return this;
+  }
+  pressAll(e) {
+    for (const el of this.els) {
+      el.press(e);
     }
-    removeAt(index){
-        const node = this.els.splice(index, 1);
-        node[0].el.classList.remove("selected")
-        return this;
-    }
-    has(item){
-        return this.els.indexOf(item) != -1;
-    }
-    moveAll(delta){
-        for(const el of this.els){
-            el.moveOn(delta)
-        }
-    }
-    pressAll(e){
-        for(const el of this.els){
-            el.press(e)
-        }
-    }
+  }
 }
