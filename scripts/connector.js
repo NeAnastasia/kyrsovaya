@@ -6,15 +6,21 @@ export class Connector {
   constructor() {
     this.currentSocket = null;
   }
-  connect(sock) {
+  connectAssociation(position) {
+    console.log("associated")
+    const conn = new Connection(this.currentSocket, null, position);
+    this.connect(conn);
+  }
+  connectSockets(sock) {
     const conn = new Connection(this.currentSocket, sock);
-    this.currentSocket.addConnection(conn);
     sock.addConnection(conn);
-
-    this.currentSocket.update();
     sock.update();
+    this.connect(conn);
+  }
+  connect(conn) {
+    this.currentSocket.addConnection(conn);
+    this.currentSocket.update();
     View.singleton.connections.push(conn);
-
     this.currentSocket = null;
   }
 }

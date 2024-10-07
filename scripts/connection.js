@@ -8,7 +8,8 @@ export class Connection {
   static idCon = 0;
   constructor(
     inSock,
-    outSock,
+    outSock = null,
+    outCoords = null,
     arrowTypeStart = ArrowType.None,
     arrowTypeEnd = ArrowType.DefaultEnd,
     isDashed = false,
@@ -29,6 +30,7 @@ export class Connection {
     this.isDashed = isDashed;
     this.inSock = inSock;
     this.outSock = outSock;
+    this.outCoords = outCoords;
     this.parrowTypeStart = arrowTypeStart;
     this.arrowTypeStart = arrowTypeStart;
     this.parrowTypeEnd = arrowTypeEnd;
@@ -74,7 +76,9 @@ export class Connection {
     $(this.spanOut).remove();
     $(this.spanCenter).remove();
     this.inSock.removeConnection(this);
-    this.outSock.removeConnection(this);
+    if (this.outSock !== null) {
+      this.outSock.removeConnection(this);
+    }
   }
   updateLine(isDashed) {
     this.isDashed = isDashed;
@@ -238,12 +242,24 @@ export class Connection {
       }
     }
   }
+  socketLineConnection(e) {
+    const x0 = e.pageX;
+    const y0 = e.pageY;
+    const x1 = $(e.target).attr("x1");
+    const y1 = $(e.target).attr("y1");
+    const x2 = $(e.target).attr("x2");
+    const y2 = $(e.target).attr("y2");
+    const dist =
+      Math.abs((y2 - y1) * x0 - (x2 - x1) * y0 + x2 * y1 - y2 * x1) /
+      Math.sqrt(Math.pow(y2 - y1, 2) + Math.pow(x2 - x1, 2));
+      Connector.singleton.connectAssociation([e.pageX, e.pageY]);
+    console.log(dist);
+  }
   addClickEventToLines() {
-    console.log(this.lineClickEls);
     $(this.lineClickEls).click((e) => {
       e.stopPropagation();
       if (Connector.singleton.currentSocket !== null) {
-        console.log("a");
+        this.socketLineConnection(e);
       } else {
         const r = View.singleton.el.getBoundingClientRect();
         if (document.getElementById("menu")) {
@@ -268,14 +284,20 @@ export class Connection {
   update() {
     this.spanIn.style.left = this.inSock.getAbsolutePosition()[0] + "px";
     this.spanIn.style.top = this.inSock.getAbsolutePosition()[1] + "px";
-    this.spanOut.style.left = this.outSock.getAbsolutePosition()[0] + "px";
-    this.spanOut.style.top = this.outSock.getAbsolutePosition()[1] + "px";
-    this.arrowLines = ArrowsCreatingPath.singleton.creatingPath(
-      this.inSock,
-      this.outSock,
-      this.isDashed,
-      this.id
-    );
+    if (this.outSock !== null) {
+      this.spanOut.style.left = this.outSock.getAbsolutePosition()[0] + "px";
+      this.spanOut.style.top = this.outSock.getAbsolutePosition()[1] + "px";
+      this.arrowLines = ArrowsCreatingPath.singleton.creatingPath(
+        this.inSock,
+        this.outSock,
+        this.isDashed,
+        this.id
+      );
+    } else {
+      this.spanOut.style.left = this.outCoords[0] + "px";
+      this.spanOut.style.top = this.outCoords[1] + "px";
+      //this.arrowLines = ArrowsCreatingPath.singleton.
+    }
     if (this.arrowLines.length === 2) {
       this.spanCenter.style.left = $(this.arrowLines[0]).attr("x2") + "px";
       this.spanCenter.style.top = $(this.arrowLines[0]).attr("y2") + "px";
@@ -319,16 +341,13 @@ export class Connection {
     this.arrowLines = [];
   }
   toJSON() {
-    return {
+    const toJSONClass = {
       id: this.id,
       inSock: {
         type: this.inSock.type,
         id: this.inSock.parent.id,
       },
-      outSock: {
-        type: this.outSock.type,
-        id: this.outSock.parent.id,
-      },
+      outCoords: this.outCoords,
       arrowTypeEnd: this.arrowTypeEnd,
       arrowTypeStart: this.arrowTypeStart,
       textCenter: this.spanCenter.textContent,
@@ -336,15 +355,28 @@ export class Connection {
       textStart: this.spanIn.textContent,
       color: this.color,
     };
+    if (this.outSock !== null) {
+      toJSONClass.outSock = {
+        type: this.outSock.type,
+        id: this.outSock.parent.id,
+      };
+    } else {
+      toJSONClass.outSock = null;
+    }
+    return toJSONClass;
   }
   static fromJSON(json) {
     const n1 = getNode(parseInt(json.inSock.id.replace("node-", ""), 10));
-    const n2 = getNode(parseInt(json.outSock.id.replace("node-", ""), 10));
+    var outSock = null;
+    if (json.outSock !== null) {
+      const n2 = getNode(parseInt(json.outSock.id.replace("node-", ""), 10));
+      outSock = n2.sockets[json.outSock.type];
+    }
     const inSock = n1.sockets[json.inSock.type];
-    const outSock = n2.sockets[json.outSock.type];
     const conn = new Connection(
       inSock,
       outSock,
+      json.outCoords,
       json.arrowTypeStart,
       json.arrowTypeEnd,
       json.isDashed,
@@ -355,7 +387,9 @@ export class Connection {
       json.color
     );
     inSock.addConnection(conn);
-    outSock.addConnection(conn);
+    if (json.outSock !== null) {
+      outSock.addConnection(conn);
+    } 
     View.singleton.addConnection(conn);
     return conn;
   }

@@ -16,15 +16,10 @@ export class Socket {
         Connector.singleton.currentSocket = this;
         console.log("grabbed");
       } else {
-        Connector.singleton.connect(this);
+        Connector.singleton.connectSockets(this);
         console.log("connected");
       }
     });
-    if(this.type === "arrowsocket") {
-      this.el.style.left = $(this.parent).attr("x2") + "px";
-      this.el.style.top = $(this.parent).attr("y2") + "px";
-      console.log("help")
-    }
   }
   addConnection(conn) {
     this.connections.push(conn);
