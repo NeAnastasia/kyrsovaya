@@ -40,7 +40,6 @@ export class TextMenu {
     this.classes = classes;
     this.textEl = textEl;
     $(this.el).appendTo(document.body);
-    console.log(document.activeElement);
     document.querySelector("#checkbox-bold").checked = false;
     document.querySelector("#checkbox-italic").checked = false;
     document.querySelector("#checkbox-underline").checked = false;
@@ -104,7 +103,6 @@ export class TextMenu {
     });
 
     $(document.getElementsByClassName("form-check-input")).click((e) => {
-      console.log(document.activeElement);
       if (e.target.checked) {
         this.textEl.classList.add(e.target.value);
       } else {

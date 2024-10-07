@@ -239,26 +239,30 @@ export class Connection {
     }
   }
   addClickEventToLines() {
+    console.log(this.lineClickEls);
     $(this.lineClickEls).click((e) => {
-      console.log("a")
       e.stopPropagation();
-      const r = View.singleton.el.getBoundingClientRect();
-      if (document.getElementById("menu")) {
-        var events = $._data(document.getElementById("menu"), "events");
-        if (events) {
-          $.each(events, function (evName, e) {
-            if (evName == "blur") {
-              $("#menu").off("blur");
-              return false;
-            }
-          });
+      if (Connector.singleton.currentSocket !== null) {
+        console.log("a");
+      } else {
+        const r = View.singleton.el.getBoundingClientRect();
+        if (document.getElementById("menu")) {
+          var events = $._data(document.getElementById("menu"), "events");
+          if (events) {
+            $.each(events, function (evName, e) {
+              if (evName == "blur") {
+                $("#menu").off("blur");
+                return false;
+              }
+            });
+          }
         }
+        ArrowsMenu.singleton.appearing(
+          this,
+          e.clientX - r.left,
+          e.clientY - r.top
+        );
       }
-      ArrowsMenu.singleton.appearing(
-        this,
-        e.clientX - r.left,
-        e.clientY - r.top
-      );
     });
   }
   update() {
@@ -297,7 +301,9 @@ export class Connection {
       const clickLine = $(this.arrowLines[i])
         .clone()
         .attr("stroke-width", 10)
-        .addClass("arrow");
+        .addClass("arrow")
+        .css("stroke", this.color)
+        .css("opacity", 0);
       if (clickLine.attr("marker-start") !== undefined) {
         clickLine.attr("marker-start", "");
       }
@@ -307,9 +313,8 @@ export class Connection {
       $(this.el).append(clickLine);
     }
     this.lineEls = $(this.el).find("line").not(".arrow");
-    this.changeColor(this.color);
     this.lineClickEls = $(this.el).find(".arrow");
-    console.log(this.lineClickEls)
+    this.changeColor(this.color);
     this.addClickEventToLines();
     this.arrowLines = [];
   }

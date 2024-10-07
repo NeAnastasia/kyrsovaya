@@ -89,7 +89,6 @@ export class View {
     c.destroy();
     window.dispatchEvent(new Event("viewupdate"));
   }
-
   addConnection(c) {
     this.connections.push(c);
     window.dispatchEvent(new Event("viewupdate"));
