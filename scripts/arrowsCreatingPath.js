@@ -36,7 +36,26 @@ export class ArrowsCreatingPath {
       `url(#arrowhead-${id}-start)`
     );
   }
-  creatingPath(inSock, outSock, isDashed, id) {
+  creatingPathForSocketAndPoint(inSock, pointPos, isDashed, id) {
+    this.isDashed = isDashed;
+    const inSockPos = inSock.getAbsolutePosition();
+    const inSockParent = inSock.parent;
+    this.arrowLines = [];
+
+    if (inSock.isUp()) {
+      this.definitionForUp(inSock, inSockParent, pointPos)
+    } else if (inSock.isRight()) {
+
+    } else if (inSock.isLeft()) {
+
+    } else if (inSock.isDown()) {
+
+    }
+  }
+  definitionForUp(sock1, sock1Parent, pointPos) {
+    
+  }
+  creatingPathForSockets(inSock, outSock, isDashed, id) {
     this.isDashed = isDashed;
     const inSockPos = inSock.getAbsolutePosition();
     const outSockPos = outSock.getAbsolutePosition();

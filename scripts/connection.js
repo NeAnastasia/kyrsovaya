@@ -287,7 +287,7 @@ export class Connection {
     if (this.outSock !== null) {
       this.spanOut.style.left = this.outSock.getAbsolutePosition()[0] + "px";
       this.spanOut.style.top = this.outSock.getAbsolutePosition()[1] + "px";
-      this.arrowLines = ArrowsCreatingPath.singleton.creatingPath(
+      this.arrowLines = ArrowsCreatingPath.singleton.creatingPathForSockets(
         this.inSock,
         this.outSock,
         this.isDashed,

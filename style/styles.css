@@ -217,7 +217,6 @@ svg.node-connection > path {
   resize: none;
   overflow: hidden;
   width: 100%;
-  vertical-align: bottom;
   display: block;
   height: 100%;
   cursor: inherit;
