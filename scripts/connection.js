@@ -3,6 +3,7 @@ import { ArrowsMenu } from "./arrowsMenu.js";
 import { Connector } from "./connector.js";
 import { View } from "./view.js";
 import { ArrowsCreatingPath } from "./arrowsCreatingPath.js";
+import { Point } from "./point.js";
 
 export class Connection {
   static idCon = 0;
@@ -10,6 +11,7 @@ export class Connection {
     inSock,
     outSock = null,
     outCoords = null,
+    outPoint = null,
     arrowTypeStart = ArrowType.None,
     arrowTypeEnd = ArrowType.DefaultEnd,
     isDashed = false,
@@ -31,6 +33,7 @@ export class Connection {
     this.inSock = inSock;
     this.outSock = outSock;
     this.outCoords = outCoords;
+    this.outPoint = outPoint;
     this.parrowTypeStart = arrowTypeStart;
     this.arrowTypeStart = arrowTypeStart;
     this.parrowTypeEnd = arrowTypeEnd;
@@ -249,11 +252,8 @@ export class Connection {
     const y1 = $(e.target).attr("y1");
     const x2 = $(e.target).attr("x2");
     const y2 = $(e.target).attr("y2");
-    const dist =
-      Math.abs((y2 - y1) * x0 - (x2 - x1) * y0 + x2 * y1 - y2 * x1) /
-      Math.sqrt(Math.pow(y2 - y1, 2) + Math.pow(x2 - x1, 2));
-      Connector.singleton.connectAssociation([e.pageX, e.pageY]);
-    console.log(dist);
+    const point = new Point(e.pageX, e.pageY, this)
+    Connector.singleton.connectAssociation(point);
   }
   addClickEventToLines() {
     $(this.lineClickEls).click((e) => {
@@ -347,7 +347,6 @@ export class Connection {
         type: this.inSock.type,
         id: this.inSock.parent.id,
       },
-      outCoords: this.outCoords,
       arrowTypeEnd: this.arrowTypeEnd,
       arrowTypeStart: this.arrowTypeStart,
       textCenter: this.spanCenter.textContent,
@@ -360,8 +359,13 @@ export class Connection {
         type: this.outSock.type,
         id: this.outSock.parent.id,
       };
+      toJSONClass.outPoint = null;
     } else {
       toJSONClass.outSock = null;
+      toJSONClass.outPoint = {
+        pos: [this.point.x, this.point.y],
+        parentId: [this.point.connectionParent.id]
+      };
     }
     return toJSONClass;
   }
@@ -389,7 +393,7 @@ export class Connection {
     inSock.addConnection(conn);
     if (json.outSock !== null) {
       outSock.addConnection(conn);
-    } 
+    }
     View.singleton.addConnection(conn);
     return conn;
   }

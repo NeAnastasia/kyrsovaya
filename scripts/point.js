@@ -1,19 +1,8 @@
 export class Point {
-  constructor(position) {
-    this.x = position[0];
-    this.y = position[1];
-    this.positionOnLine = 0;
-  }
-  countPositionOnLine(linePosStart, linePosEnd, isHorizontal) {
-    if (isHorizontal) {
-      this.positionOnLine = Math.abs(
-        (this.x - linePosStart[0]) / (linePosEnd[0] - linePosStart[0])
-      );
-    } else {
-      this.positionOnLine = Math.abs(
-        (this.y - linePosStart[1]) / (linePosEnd[1] - linePosStart[1])
-      );
-    }
+  constructor(x, y, connectionParent) {
+    this.x = x;
+    this.y = y;
+    this.connectionParent = connectionParent;
   }
   findNewPosition(lines) {
     let closestXOnLine = null;

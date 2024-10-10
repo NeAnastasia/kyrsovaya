@@ -6,9 +6,9 @@ export class Connector {
   constructor() {
     this.currentSocket = null;
   }
-  connectAssociation(position) {
+  connectAssociation(point) {
     console.log("associated")
-    const conn = new Connection(this.currentSocket, null, position);
+    const conn = new Connection(this.currentSocket, null, point);
     this.connect(conn);
   }
   connectSockets(sock) {
