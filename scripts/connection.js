@@ -10,7 +10,6 @@ export class Connection {
   constructor(
     inSock,
     outSock = null,
-    outCoords = null,
     outPoint = null,
     arrowTypeStart = ArrowType.None,
     arrowTypeEnd = ArrowType.DefaultEnd,
@@ -29,10 +28,10 @@ export class Connection {
     Connection.idCon++;
     this.isArrowsReversed = false;
     this.arrowLines = [];
+    this.connectedConnections = [];
     this.isDashed = isDashed;
     this.inSock = inSock;
     this.outSock = outSock;
-    this.outCoords = outCoords;
     this.outPoint = outPoint;
     this.parrowTypeStart = arrowTypeStart;
     this.arrowTypeStart = arrowTypeStart;
@@ -65,7 +64,7 @@ export class Connection {
       </svg>`
     ).appendTo("#view-area")[0];
     $(this.el).attr("id", this.id);
-    this.lineEls = $(this.el).find("line");
+    this.lineEls = $(this.el).find("line").not(".arrow");
     this.markerELStart = $(this.el).find("marker")[0];
     $(this.markerELStart).attr("id", `arrowhead-${this.id}-start`);
     this.markerELEnd = $(this.el).find("marker")[1];
@@ -233,10 +232,31 @@ export class Connection {
         $(this.markerELStart).attr("refX", `0`);
       }
     } else {
-      if (this.arrowTypeEnd == ArrowType.DefaultEnd) {
+      if (
+        this.arrowTypeEnd == ArrowType.DefaultEnd ||
+        this.arrowTypeEnd === ArrowType.None
+      ) {
         $(this.markerELEnd).attr("refX", `10`);
       } else {
-        $(this.markerELEnd).attr("refX", `0`);
+        if (this.outPoint !== null) {
+          const line = this.arrowLines[this.arrowLines.length - 1];
+          if ($(line).attr("y1") === $(line).attr("y2")) {
+            if ($(line).attr("x1") < $(line).attr("x2")) {
+              $(line).attr("x2", parseFloat($(line).attr("x2")) - 20);
+            } else {
+              $(line).attr("x2", parseFloat($(line).attr("x2")) + 20);
+            }
+          } else {
+            if ($(line).attr("y1") < $(line).attr("y2")) {
+              $(line).attr("y2", parseFloat($(line).attr("y2")) - 20);
+            } else {
+              $(line).attr("y2", parseFloat($(line).attr("y2")) + 20);
+            }
+          }
+          $(this.markerELEnd).attr("refX", `0`);
+        } else {
+          $(this.markerELEnd).attr("refX", `0`);
+        }
       }
       if (this.arrowTypeStart != ArrowType.DefaultStart) {
         $(this.markerELStart).attr("refX", `10`);
@@ -245,21 +265,16 @@ export class Connection {
       }
     }
   }
-  socketLineConnection(e) {
-    const x0 = e.pageX;
-    const y0 = e.pageY;
-    const x1 = $(e.target).attr("x1");
-    const y1 = $(e.target).attr("y1");
-    const x2 = $(e.target).attr("x2");
-    const y2 = $(e.target).attr("y2");
-    const point = new Point(e.pageX, e.pageY, this)
-    Connector.singleton.connectAssociation(point);
-  }
   addClickEventToLines() {
     $(this.lineClickEls).click((e) => {
       e.stopPropagation();
       if (Connector.singleton.currentSocket !== null) {
-        this.socketLineConnection(e);
+        const point = new Point(
+          e.pageX - View.singleton.pos[0],
+          e.pageY - View.singleton.pos[1],
+          this
+        );
+        Connector.singleton.connectAssociation(point, this);
       } else {
         const r = View.singleton.el.getBoundingClientRect();
         if (document.getElementById("menu")) {
@@ -294,9 +309,17 @@ export class Connection {
         this.id
       );
     } else {
-      this.spanOut.style.left = this.outCoords[0] + "px";
-      this.spanOut.style.top = this.outCoords[1] + "px";
-      //this.arrowLines = ArrowsCreatingPath.singleton.
+      this.spanOut.style.left = this.outPoint.x + "px";
+      this.spanOut.style.top = this.outPoint.y + "px";
+      let isHorizontal = this.outPoint.findNewPositionReturnIsHorizontal();
+      this.arrowLines =
+        ArrowsCreatingPath.singleton.creatingPathForSocketAndPoint(
+          this.inSock,
+          this.outPoint,
+          this.isDashed,
+          this.id,
+          isHorizontal
+        );
     }
     if (this.arrowLines.length === 2) {
       this.spanCenter.style.left = $(this.arrowLines[0]).attr("x2") + "px";
@@ -304,13 +327,13 @@ export class Connection {
     } else {
       const index = Math.floor(this.arrowLines.length / 2);
       this.spanCenter.style.left =
-        (parseInt($(this.arrowLines[index]).attr("x2")) +
-          parseInt($(this.arrowLines[index]).attr("x1"))) /
+        (parseFloat($(this.arrowLines[index]).attr("x2")) +
+          parseFloat($(this.arrowLines[index]).attr("x1"))) /
           2 +
         "px";
       this.spanCenter.style.top =
-        (parseInt($(this.arrowLines[index]).attr("y2")) +
-          parseInt($(this.arrowLines[index]).attr("y1"))) /
+        (parseFloat($(this.arrowLines[index]).attr("y2")) +
+          parseFloat($(this.arrowLines[index]).attr("y1"))) /
           2 +
         "px";
     }
@@ -338,6 +361,11 @@ export class Connection {
     this.lineClickEls = $(this.el).find(".arrow");
     this.changeColor(this.color);
     this.addClickEventToLines();
+    if (this.connectedConnections.length !== 0) {
+      $(this.connectedConnections).each((i, conn) => {
+        conn.update();
+      });
+    }
     this.arrowLines = [];
   }
   toJSON() {
@@ -363,24 +391,33 @@ export class Connection {
     } else {
       toJSONClass.outSock = null;
       toJSONClass.outPoint = {
-        pos: [this.point.x, this.point.y],
-        parentId: [this.point.connectionParent.id]
+        pos: [this.outPoint.x, this.outPoint.y],
+        parentId: [this.outPoint.connectionParent.id],
       };
     }
     return toJSONClass;
   }
   static fromJSON(json) {
-    const n1 = getNode(parseInt(json.inSock.id.replace("node-", ""), 10));
+    const n1 = getNode(parseFloat(json.inSock.id.replace("node-", ""), 10));
     var outSock = null;
+    var point = null;
+    var foundConnection = null;
     if (json.outSock !== null) {
-      const n2 = getNode(parseInt(json.outSock.id.replace("node-", ""), 10));
+      const n2 = getNode(parseFloat(json.outSock.id.replace("node-", ""), 10));
       outSock = n2.sockets[json.outSock.type];
+    }
+    if (json.outPoint !== null) {
+      const targetId = json.outPoint.parentId;
+      foundConnection = View.singleton.connections.find(
+        (connection) => connection.id === targetId
+      );
+      point = new Point(json.outPoint.x, json.outPoint.y, foundConnection);
     }
     const inSock = n1.sockets[json.inSock.type];
     const conn = new Connection(
       inSock,
       outSock,
-      json.outCoords,
+      point,
       json.arrowTypeStart,
       json.arrowTypeEnd,
       json.isDashed,
@@ -393,6 +430,9 @@ export class Connection {
     inSock.addConnection(conn);
     if (json.outSock !== null) {
       outSock.addConnection(conn);
+    }
+    if (point !== null) {
+      foundConnection.connectedConnections.push(conn);
     }
     View.singleton.addConnection(conn);
     return conn;

@@ -47,6 +47,7 @@ $(document).ready(function (e) {
           type: "up",
           id: "node-0",
         },
+        outPoint: null,
         isDashed: false,
         arrowTypeEnd: ArrowType.DefaultEnd,
         arrowTypeStart: ArrowType.None,

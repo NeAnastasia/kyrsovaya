@@ -4,45 +4,54 @@ export class Point {
     this.y = y;
     this.connectionParent = connectionParent;
   }
-  findNewPosition(lines) {
-    let closestXOnLine = null;
-    let closestYOnLine = null;
+  findNewPositionReturnIsHorizontal() {
+    let closestPoint = null;
+    let minDistance = Infinity;
+    let closestLine;
 
-    lines.forEach((line) => {
-      const x1 = $(line).attr("x1");
-      const x2 = $(line).attr("x2");
-      const y1 = $(line).attr("y1");
-      const y2 = $(line).attr("y2");
+    $(this.connectionParent.lineEls).each((i, line) => {
+      const x1 = parseFloat(line.getAttribute("x1"));
+      const y1 = parseFloat(line.getAttribute("y1"));
+      const x2 = parseFloat(line.getAttribute("x2"));
+      const y2 = parseFloat(line.getAttribute("y2"));
 
-      const lineVectorX = x2 - x1;
-      const lineVectorY = y2 - y1;
+      let closestX, closestY;
 
-      const pointVectorX = this.x - x1;
-      const pointVectorY = this.y - y1;
+      if (y1 === y2) {
+        closestX = this.x;
+        closestY = y1;
 
-      const lineLengthSquared =
-        Math.pow(lineVectorX, 2) + Math.pow(lineVectorY, 2);
+        if (closestX < Math.min(x1, x2)) {
+          closestX = Math.min(x1, x2);
+        }
+        if (closestX > Math.max(x1, x2)) {
+          closestX = Math.max(x1, x2);
+        }
+      } else {
+        closestX = x1;
+        closestY = this.y;
 
-      const t =
-        (pointVectorX * lineVectorX + pointVectorY * lineVectorY) /
-        lineLengthSquared;
+        if (closestY < Math.min(y1, y2)) {
+          closestY = Math.min(y1, y2);
+        }
+        if (closestY > Math.max(y1, y2)) {
+          closestY = Math.max(y1, y2);
+        }
+      }
 
-      const clampedT = Math.max(0, Math.min(1, t));
+      const distance = Math.sqrt(
+        Math.pow(this.x - closestX, 2) + Math.pow(this.y - closestY, 2)
+      );
 
-      const nearestX = x1 + clampedT * lineVectorX;
-      const nearestY = y1 + clampedT * lineVectorY;
-
-      if (
-        closestXOnLine === null ||
-        closestXOnLine > nearestX ||
-        closestYOnLine > nearestY
-      ) {
-        closestXOnLine = nearestX;
-        closestYOnLine = nearestY;
+      if (distance < minDistance) {
+        minDistance = distance;
+        closestPoint = { x: closestX, y: closestY };
+        closestLine = line;
       }
     });
+    this.x = closestPoint.x;
+    this.y = closestPoint.y;
 
-    this.x = closestXOnLine;
-    this.y = closestYOnLine;
+    return $(closestLine).attr("y1") === $(closestLine).attr("y2");
   }
 }

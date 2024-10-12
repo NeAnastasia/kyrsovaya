@@ -52,41 +52,77 @@ export class ArrowsCreatingPath {
         pointY,
         isHorizontal
       );
+      this.setArrow0StartEndEnd(id);
     } else if (inSock.isRight()) {
+      this.definitionForRight(
+        inSockPos,
+        inSockParent,
+        pointX,
+        pointY,
+        isHorizontal
+      );
+      this.setArrow0StartEndEnd(id);
     } else if (inSock.isLeft()) {
+      this.definitionForLeft(
+        inSockPos,
+        inSockParent,
+        pointX,
+        pointY,
+        isHorizontal
+      );
+      this.setArrow0StartEndEnd(id);
     } else if (inSock.isDown()) {
+      this.definitionForDown(
+        inSockPos,
+        inSockParent,
+        pointX,
+        pointY,
+        isHorizontal
+      );
+      this.setArrow0StartEndEnd(id);
     }
+
+    return this.arrowLines;
   }
-  definitionForUp(sock1Pos, sock1Parent, pointX, pointY) {
+  definitionForUp(sock1Pos, sock1Parent, pointX, pointY, isHorizontal) {
     if (isHorizontal) {
       if (sock1Pos[1] > pointY) {
         if (sock1Pos[0] === pointX) {
           this.straightLine(sock1Pos, pointX, pointY);
         } else {
-          this.inBetweenLineUpDown(sock1Pos, pointX, pointY, -1);
+          this.inBetweenLineFromUpDownToUpDown(sock1Pos, pointX, pointY, -1);
         }
       } else {
-        if (pointX > sock1Parent.pos[0] - this.arrowIndent) {
-          this.envelopeCurvedLine(
-            sock1Pos,
-            pointX,
-            pointY,
-            sock1Parent.getAcrossYPosition(),
-            sock1Pos[0] - this.arrowIndent
-          );
-        } else if (
-          pointX <
-          sock1Parent.getAcrossXPosition() + this.arrowIndent
+        if (
+          pointX < sock1Parent.pos[0] - this.arrowIndent ||
+          pointX > sock1Parent.getAcrossXPosition() + this.arrowIndent
         ) {
-          this.envelopeCurvedLine(
+          this.envelopeLineFromUpDown(sock1Pos, pointX, pointY, -1);
+        } else if (
+          pointX < sock1Parent.getAcrossXPosition() + this.arrowIndent &&
+          pointX >
+            sock1Parent.pos[0] +
+              (sock1Parent.getAcrossXPosition() - sock1Parent.pos[0]) / 2
+        ) {
+          this.envelopeCurvedLineFromUpDown(
             sock1Pos,
             pointX,
             pointY,
             sock1Parent.getAcrossYPosition(),
-            sock1Pos.getAcrossXPosition() + this.arrowIndent
+            sock1Parent.getAcrossXPosition() + this.arrowIndent,
+            1,
+            -1
           );
         } else {
-          this.envelopeLine(sock1Pos, pointX, pointY, -1);
+          this.envelopeCurvedLineFromUpDown(
+            sock1Pos,
+            pointX,
+            pointY,
+            sock1Parent.getAcrossYPosition(),
+            sock1Parent.pos[0] - this.arrowIndent,
+            1,
+            -1
+          );
         }
       }
     } else {
@@ -95,8 +131,8 @@ export class ArrowsCreatingPath {
       } else {
         if (pointX > sock1Pos[0]) {
           const halfGapX =
-            Math.pow(sock1Parent.getAcrossXPosition() - pointX) / 2;
-          this.inBetweenLineRightLeft(
+            Math.abs(sock1Parent.getAcrossXPosition() - pointX) / 2;
+          this.inBetweenLineFromUpDownToRightLeft(
             sock1Pos,
             pointX,
             pointY,
@@ -104,13 +140,13 @@ export class ArrowsCreatingPath {
             sock1Parent.getAcrossXPosition() + halfGapX
           );
         } else {
-          const halfGapX = Math.pow(pointX - sock1Parent.pos[0]) / 2;
-          this.inBetweenLineRightLeft(
+          const halfGapX = Math.abs(pointX - sock1Parent.pos[0]) / 2;
+          this.inBetweenLineFromUpDownToRightLeft(
             sock1Pos,
             pointX,
             pointY,
             -1,
-            sock1Parent.pos[0] + halfGapX
+            sock1Parent.pos[0] - halfGapX
           );
         }
       }
@@ -126,8 +162,8 @@ export class ArrowsCreatingPath {
       })
     );
   }
-  inBetweenLineUpDown(sock1Pos, pointX, pointY, gapSign) {
-    const halfGapY = Math.pow(pointY - sock1Pos[1]) / 2;
+  inBetweenLineFromUpDownToUpDown(sock1Pos, pointX, pointY, gapSign) {
+    const halfGapY = Math.abs(pointY - sock1Pos[1]) / 2;
     this.arrowLines.push(
       this.createSVGLine({
         x1: sock1Pos[0],
@@ -153,50 +189,58 @@ export class ArrowsCreatingPath {
       })
     );
   }
-  envelopeCurvedLine(sock1Pos, pointX, pointY, parentAcrossY, sideX) {
-    const halfGapY = Math.pow(parentAcrossY - pointY) / 2;
+  envelopeCurvedLineFromUpDown(
+    sock1Pos,
+    pointX,
+    pointY,
+    parentAcrossY,
+    sideX,
+    gapSign,
+    indentSign
+  ) {
+    const halfGapY = Math.abs(parentAcrossY - pointY) / 2;
     this.arrowLines.push(
       this.createSVGLine({
         x1: sock1Pos[0],
         y1: sock1Pos[1],
         x2: sock1Pos[0],
-        y2: sock1Pos[1] - this.arrowIndent,
+        y2: sock1Pos[1] + indentSign * this.arrowIndent,
       })
     );
     this.arrowLines.push(
       this.createSVGLine({
         x1: sock1Pos[0],
-        y1: sock1Pos[1] - this.arrowIndent,
+        y1: sock1Pos[1] + indentSign * this.arrowIndent,
         x2: sideX,
-        y2: sock1Pos[1] - this.arrowIndent,
+        y2: sock1Pos[1] + indentSign * this.arrowIndent,
       })
     );
     this.arrowLines.push(
       this.createSVGLine({
         x1: sideX,
-        y1: sock1Pos[1] - this.arrowIndent,
+        y1: sock1Pos[1] + indentSign * this.arrowIndent,
         x2: sideX,
-        y2: parentAcrossY + halfGapY,
+        y2: parentAcrossY + gapSign * halfGapY,
       })
     );
     this.arrowLines.push(
       this.createSVGLine({
         x1: sideX,
-        y1: parentAcrossY + halfGapY,
+        y1: parentAcrossY + gapSign * halfGapY,
         x2: pointX,
-        y2: parentAcrossY + halfGapY,
+        y2: parentAcrossY + gapSign * halfGapY,
       })
     );
     this.arrowLines.push(
       this.createSVGLine({
         x1: pointX,
-        y1: parentAcrossY + halfGapY,
+        y1: parentAcrossY + gapSign * halfGapY,
         x2: pointX,
         y2: pointY,
       })
     );
   }
-  envelopeLine(sock1Pos, pointX, pointY, indentSign) {
+  envelopeLineFromUpDown(sock1Pos, pointX, pointY, indentSign) {
     this.arrowLines.push(
       this.createSVGLine({
         x1: sock1Pos[0],
@@ -216,13 +260,19 @@ export class ArrowsCreatingPath {
     this.arrowLines.push(
       this.createSVGLine({
         x1: pointX,
-        y1: sock1Pos[1] - this.arrowIndent,
+        y1: sock1Pos[1] + indentSign * this.arrowIndent,
         x2: pointX,
         y2: pointY,
       })
     );
   }
-  inBetweenLineRightLeft(sock1Pos, pointX, pointY, indentSign, gapX) {
+  inBetweenLineFromUpDownToRightLeft(
+    sock1Pos,
+    pointX,
+    pointY,
+    indentSign,
+    gapX
+  ) {
     this.arrowLines.push(
       this.createSVGLine({
         x1: sock1Pos[0],
@@ -253,6 +303,392 @@ export class ArrowsCreatingPath {
         y1: pointY,
         x2: pointX,
         y2: pointY,
+      })
+    );
+  }
+  definitionForDown(sock1Pos, sock1Parent, pointX, pointY, isHorizontal) {
+    if (isHorizontal) {
+      if (sock1Pos[1] < pointY) {
+        if (sock1Pos[0] === pointX) {
+          this.straightLine(sock1Pos, pointX, pointY);
+        } else {
+          this.inBetweenLineFromUpDownToUpDown(sock1Pos, pointX, pointY, 1);
+        }
+      } else {
+        if (
+          pointX > sock1Parent.getAcrossXPosition() + this.arrowIndent ||
+          pointX < sock1Parent.pos[0] - this.arrowIndent
+        ) {
+          this.envelopeLineFromUpDown(sock1Pos, pointX, pointY, 1);
+        } else if (
+          pointX > sock1Parent.pos[0] - this.arrowIndent &&
+          pointX <
+            sock1Parent.pos[0] +
+              (sock1Parent.getAcrossXPosition() - sock1Parent.pos[0]) / 2
+        ) {
+          this.envelopeCurvedLineFromUpDown(
+            sock1Pos,
+            pointX,
+            pointY,
+            sock1Parent.pos[1],
+            sock1Parent.pos[0] - this.arrowIndent,
+            -1,
+            1
+          );
+        } else {
+          this.envelopeCurvedLineFromUpDown(
+            sock1Pos,
+            pointX,
+            pointY,
+            sock1Parent.pos[1],
+            sock1Parent.getAcrossXPosition() + this.arrowIndent,
+            -1,
+            1
+          );
+        }
+      }
+    } else {
+      if (pointY > sock1Pos[1] + this.arrowIndent) {
+        this.oneAngleArrow(sock1Pos, [pointX, pointY]);
+      } else {
+        if (pointX > sock1Pos[0]) {
+          const halfGapX =
+            Math.abs(sock1Parent.getAcrossXPosition() - pointX) / 2;
+          this.inBetweenLineFromUpDownToRightLeft(
+            sock1Pos,
+            pointX,
+            pointY,
+            1,
+            sock1Parent.getAcrossXPosition() + halfGapX
+          );
+        } else {
+          const halfGapX = Math.abs(sock1Parent.pos[0] - pointX) / 2;
+          this.inBetweenLineFromUpDownToRightLeft(
+            sock1Pos,
+            pointX,
+            pointY,
+            1,
+            sock1Parent.pos[0] - halfGapX
+          );
+        }
+      }
+    }
+  }
+  definitionForRight(sock1Pos, sock1Parent, pointX, pointY, isHorizontal) {
+    if (isHorizontal) {
+      if (pointX > sock1Pos[0] + this.arrowIndent) {
+        this.oneAngleArrowX(sock1Pos, [pointX, pointY]);
+      } else {
+        if (pointY > sock1Pos[1]) {
+          const halfGapY =
+            Math.abs(pointY - sock1Parent.getAcrossYPosition()) / 2;
+          this.inBetweenLineFromRightLeftToUpDown(
+            sock1Pos,
+            pointX,
+            pointY,
+            sock1Parent.getAcrossYPosition() + halfGapY,
+            1
+          );
+        } else {
+          const halfGapY = Math.abs(sock1Parent.pos[1] - pointY) / 2;
+          this.inBetweenLineFromRightLeftToUpDown(
+            sock1Pos,
+            pointX,
+            pointY,
+            sock1Parent.pos[1] - halfGapY,
+            1
+          );
+        }
+      }
+    } else {
+      if (pointX > sock1Pos[0]) {
+        if (pointY === sock1Pos[1]) {
+          this.straightLine(sock1Pos, pointX, pointY);
+        } else {
+          this.inBetweenLineFromRightLeftToRightLeft(
+            sock1Pos,
+            pointX,
+            pointY,
+            1
+          );
+        }
+      } else {
+        if (
+          pointY < sock1Parent.pos[1] - this.arrowIndent ||
+          pointY > sock1Parent.getAcrossYPosition() + this.arrowIndent
+        ) {
+          this.envelopeLineFromRightLeftToRightLeft(
+            sock1Pos,
+            pointX,
+            pointY,
+            1
+          );
+        } else if (
+          pointY < sock1Parent.getAcrossYPosition() + this.arrowIndent &&
+          pointY >
+            sock1Parent.pos[1] +
+              (sock1Parent.getAcrossYPosition() - sock1Parent.pos[1]) / 2
+        ) {
+          this.envelopeArrowRightLeftToRightLeft(
+            sock1Pos,
+            pointX,
+            pointY,
+            sock1Parent.pos[0],
+            sock1Parent.getAcrossYPosition() + this.arrowIndent,
+            -1,
+            1
+          );
+        } else {
+          this.envelopeArrowRightLeftToRightLeft(
+            sock1Pos,
+            pointX,
+            pointY,
+            sock1Parent.pos[0],
+            sock1Parent.pos[1] - this.arrowIndent,
+            -1,
+            1
+          );
+        }
+      }
+    }
+  }
+  inBetweenLineFromRightLeftToUpDown(
+    sock1Pos,
+    pointX,
+    pointY,
+    halfY,
+    indentSign
+  ) {
+    this.arrowLines.push(
+      this.createSVGLine({
+        x1: sock1Pos[0],
+        y1: sock1Pos[1],
+        x2: sock1Pos[0] + indentSign * this.arrowIndent,
+        y2: sock1Pos[1],
+      })
+    );
+    this.arrowLines.push(
+      this.createSVGLine({
+        x1: sock1Pos[0] + indentSign * this.arrowIndent,
+        y1: sock1Pos[1],
+        x2: sock1Pos[0] + indentSign * this.arrowIndent,
+        y2: halfY,
+      })
+    );
+    this.arrowLines.push(
+      this.createSVGLine({
+        x1: sock1Pos[0] + indentSign * this.arrowIndent,
+        y1: halfY,
+        x2: pointX,
+        y2: halfY,
+      })
+    );
+    this.arrowLines.push(
+      this.createSVGLine({
+        x1: pointX,
+        y1: halfY,
+        x2: pointX,
+        y2: pointY,
+      })
+    );
+  }
+  inBetweenLineFromRightLeftToRightLeft(sock1Pos, pointX, pointY, sideSign) {
+    const halfGapX = Math.abs(sock1Pos[0] - pointX) / 2;
+    this.arrowLines.push(
+      this.createSVGLine({
+        x1: sock1Pos[0],
+        y1: sock1Pos[1],
+        x2: sock1Pos[0] + sideSign * halfGapX,
+        y2: sock1Pos[1],
+      })
+    );
+    this.arrowLines.push(
+      this.createSVGLine({
+        x1: sock1Pos[0] + sideSign * halfGapX,
+        y1: sock1Pos[1],
+        x2: sock1Pos[0] + sideSign * halfGapX,
+        y2: pointY,
+      })
+    );
+    this.arrowLines.push(
+      this.createSVGLine({
+        x1: sock1Pos[0] + sideSign * halfGapX,
+        y1: pointY,
+        x2: pointX,
+        y2: pointY,
+      })
+    );
+  }
+  envelopeArrowRightLeftToRightLeft(
+    sock1Pos,
+    pointX,
+    pointY,
+    parentX,
+    sideY,
+    gapSign,
+    indentSign
+  ) {
+    const halfGapX = Math.abs(parentX - pointX) / 2;
+    this.arrowLines.push(
+      this.createSVGLine({
+        x1: sock1Pos[0],
+        y1: sock1Pos[1],
+        x2: sock1Pos[0] + indentSign * this.arrowIndent,
+        y2: sock1Pos[1],
+      })
+    );
+    this.arrowLines.push(
+      this.createSVGLine({
+        x1: sock1Pos[0] + indentSign * this.arrowIndent,
+        y1: sock1Pos[1],
+        x2: sock1Pos[0] + indentSign * this.arrowIndent,
+        y2: sideY,
+      })
+    );
+    this.arrowLines.push(
+      this.createSVGLine({
+        x1: sock1Pos[0] + indentSign * this.arrowIndent,
+        y1: sideY,
+        x2: parentX + gapSign * halfGapX,
+        y2: sideY,
+      })
+    );
+    this.arrowLines.push(
+      this.createSVGLine({
+        x1: parentX + gapSign * halfGapX,
+        y1: sideY,
+        x2: parentX + gapSign * halfGapX,
+        y2: pointY,
+      })
+    );
+    this.arrowLines.push(
+      this.createSVGLine({
+        x1: parentX + gapSign * halfGapX,
+        y1: pointY,
+        x2: pointX,
+        y2: pointY,
+      })
+    );
+  }
+  envelopeLineFromRightLeftToRightLeft(sock1Pos, pointX, pointY, indentSign) {
+    this.arrowLines.push(
+      this.createSVGLine({
+        x1: sock1Pos[0],
+        y1: sock1Pos[1],
+        x2: sock1Pos[0] + indentSign * this.arrowIndent,
+        y2: sock1Pos[1],
+      })
+    );
+    this.arrowLines.push(
+      this.createSVGLine({
+        x1: sock1Pos[0] + indentSign * this.arrowIndent,
+        y1: sock1Pos[1],
+        x2: sock1Pos[0] + indentSign * this.arrowIndent,
+        y2: pointY,
+      })
+    );
+    this.arrowLines.push(
+      this.createSVGLine({
+        x1: sock1Pos[0] + indentSign * this.arrowIndent,
+        y1: pointY,
+        x2: pointX,
+        y2: pointY,
+      })
+    );
+  }
+  definitionForLeft(sock1Pos, sock1Parent, pointX, pointY, isHorizontal) {
+    if (isHorizontal) {
+      if (pointX < sock1Pos[0] - this.arrowIndent) {
+        this.oneAngleArrowX(sock1Pos, [pointX, pointY]);
+      } else {
+        if (pointY < sock1Pos[1]) {
+          const halfGapY = Math.abs(sock1Parent.pos[1] - pointY) / 2;
+          this.inBetweenLineFromRightLeftToUpDown(
+            sock1Pos,
+            pointX,
+            pointY,
+            sock1Parent.pos[1] - halfGapY,
+            -1
+          );
+        } else {
+          const halfGapY =
+            Math.abs(pointY - sock1Parent.getAcrossYPosition()) / 2;
+          this.inBetweenLineFromRightLeftToUpDown(
+            sock1Pos,
+            pointX,
+            pointY,
+            sock1Parent.getAcrossYPosition() + halfGapY,
+            -1
+          );
+        }
+      }
+    } else {
+      if (pointX < sock1Pos[0]) {
+        if (pointY === sock1Pos[1]) {
+          this.straightLine(sock1Pos, pointX, pointY);
+        } else {
+          this.inBetweenLineFromRightLeftToRightLeft(
+            sock1Pos,
+            pointX,
+            pointY,
+            -1
+          );
+        }
+      } else {
+        if (
+          pointY < sock1Parent.pos[1] - this.arrowIndent ||
+          pointY > sock1Parent.getAcrossYPosition() + this.arrowIndent
+        ) {
+          this.envelopeLineFromRightLeftToRightLeft(
+            sock1Pos,
+            pointX,
+            pointY,
+            -1
+          );
+        } else if (
+          pointY < sock1Parent.getAcrossYPosition() + this.arrowIndent &&
+          pointY >
+            sock1Parent.pos[1] +
+              (sock1Parent.getAcrossYPosition() - sock1Parent.pos[1]) / 2
+        ) {
+          this.envelopeArrowRightLeftToRightLeft(
+            sock1Pos,
+            pointX,
+            pointY,
+            sock1Parent.getAcrossXPosition(),
+            sock1Parent.getAcrossYPosition() + this.arrowIndent,
+            1,
+            -1
+          );
+        } else {
+          this.envelopeArrowRightLeftToRightLeft(
+            sock1Pos,
+            pointX,
+            pointY,
+            sock1Parent.getAcrossXPosition(),
+            sock1Parent.pos[1] - this.arrowIndent,
+            1,
+            -1
+          );
+        }
+      }
+    }
+  }
+  oneAngleArrowX(sock1Pos, sock2Pos) {
+    this.arrowLines.push(
+      this.createSVGLine({
+        x1: sock1Pos[0],
+        y1: sock1Pos[1],
+        x2: sock2Pos[0],
+        y2: sock1Pos[1],
+      })
+    );
+    this.arrowLines.push(
+      this.createSVGLine({
+        x1: sock2Pos[0],
+        y1: sock1Pos[1],
+        x2: sock2Pos[0],
+        y2: sock2Pos[1],
       })
     );
   }
