@@ -8,6 +8,7 @@ export class View {
   constructor() {
     this.el = $("#view-area")[0];
     this.container = $("#view")[0];
+    this.connectionIsMoving = false;
     this.container.addEventListener("mousedown", this.down.bind(this));
     window.addEventListener("mouseup", this.up.bind(this));
     window.addEventListener("mousemove", this.move.bind(this));
@@ -26,33 +27,39 @@ export class View {
     });
   }
   down(e) {
-    e.preventDefault();
-    e.stopPropagation();
-    Selection.singleton.clear();
-    this._sp = [e.pageX, e.pageY];
-    this.opos = [...this.pos];
-    //document.activeElement.blur()
+    if (!this.connectionIsMoving) {
+      e.preventDefault();
+      e.stopPropagation();
+      Selection.singleton.clear();
+      this._sp = [e.pageX, e.pageY];
+      this.opos = [...this.pos];
+      //document.activeElement.blur()
+    }
   }
   up(e) {
-    e.preventDefault();
-    e.stopPropagation();
-    this.opos = null;
-    this._sp = null;
+    if (!this.connectionIsMoving) {
+      e.preventDefault();
+      e.stopPropagation();
+      this.opos = null;
+      this._sp = null;
+    }
   }
   move(e) {
-    e.preventDefault();
-    e.stopPropagation();
-    if (this.opos == null) {
-      return;
+    if (!this.connectionIsMoving) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (this.opos == null) {
+        return;
+      }
+      this.pos = [
+        this.opos[0] + e.pageX - this._sp[0],
+        this.opos[1] + e.pageY - this._sp[1],
+      ];
+      this.update();
     }
-    this.pos = [
-      this.opos[0] + e.pageX - this._sp[0],
-      this.opos[1] + e.pageY - this._sp[1],
-    ];
-    this.update();
   }
   click(e) {
-    if (e.target == this.el || e.target == this.container) {
+    if ((e.target == this.el || e.target == this.container) && !this.connectionIsMoving) {
       if ($(".text-menu").length !== 0) {
         TextMenu.singleton.deleteMenu();
       }

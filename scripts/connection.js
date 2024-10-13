@@ -70,6 +70,28 @@ export class Connection {
     this.markerELEnd = $(this.el).find("marker")[1];
     $(this.markerELEnd).attr("id", `arrowhead-${this.id}-end`);
     this.lineClickEls = $(this.el).find(".arrow");
+    this.inClick = document.createElementNS(
+      "http://www.w3.org/2000/svg",
+      "circle"
+    );
+    $(this.inClick).attr("r", "6").addClass("arrow-edge-click");
+    $(this.inClick).appendTo(this.el)[0];
+    this.outClick = document.createElementNS(
+      "http://www.w3.org/2000/svg",
+      "circle"
+    );
+    $(this.outClick).attr("r", "6").addClass("arrow-edge-click");
+    $(this.outClick).appendTo(this.el)[0];
+    $(".arrow-edge-click").on("mousedown", (e) => {
+      console.log("grabbed mouse down");
+      console.log($(".node-text-content"));
+      $(".node-text-content").css("user-select", "none");
+      View.singleton.connectionIsMoving = true;
+    });
+    // $(".arrow-edge-click").on("mouseup", (e) => {
+    //   console.log(e.target, "mew", e.relatedTarget);
+    //   View.singleton.connectionIsMoving = false;
+    // });
     this.update();
   }
   destroy() {
@@ -266,6 +288,11 @@ export class Connection {
     }
   }
   addClickEventToLines() {
+    $(this.lineClickEls).on("mouseup", (e) => {
+      if (View.singleton.connectionIsMoving) {
+        console.log(e.target, "wow", e.relatedTarget);
+      }
+    });
     $(this.lineClickEls).click((e) => {
       e.stopPropagation();
       if (Connector.singleton.currentSocket !== null) {
@@ -296,30 +323,51 @@ export class Connection {
       }
     });
   }
-  update() {
+  checkIfClickLineNeedsToBeShorter() {
+    let line = this.lineClickEls[this.lineClickEls.length - 1];
+    if ($(line).attr("y1") === $(line).attr("y2")) {
+      if ($(line).attr("x1") > $(line).attr("x2")) {
+        $(line).attr("x2", parseFloat($(line).attr("x2")) - 7);
+      } else {
+        $(line).attr("x2", parseFloat($(line).attr("x2")) + 7);
+      }
+    } else {
+      if ($(line).attr("y1") > $(line).attr("y2")) {
+        $(line).attr("y2", parseFloat($(line).attr("y2")) + 7);
+      } else {
+        $(line).attr("y2", parseFloat($(line).attr("y2")) - 7);
+      }
+    }
+    line = this.lineClickEls[0];
+    if ($(line).attr("y1") === $(line).attr("y2")) {
+      if ($(line).attr("x1") > $(line).attr("x2")) {
+        $(line).attr("x1", parseFloat($(line).attr("x1")) - 7);
+      } else {
+        $(line).attr("x1", parseFloat($(line).attr("x1")) + 7);
+      }
+    } else {
+      if ($(line).attr("y1") > $(line).attr("y2")) {
+        $(line).attr("y1", parseFloat($(line).attr("y1")) - 7);
+      } else {
+        $(line).attr("y1", parseFloat($(line).attr("y1")) + 7);
+      }
+    }
+  }
+  definePosAdditionalElements() {
     this.spanIn.style.left = this.inSock.getAbsolutePosition()[0] + "px";
     this.spanIn.style.top = this.inSock.getAbsolutePosition()[1] + "px";
+    $(this.inClick).attr("cx", this.inSock.getAbsolutePosition()[0]);
+    $(this.inClick).attr("cy", this.inSock.getAbsolutePosition()[1]);
     if (this.outSock !== null) {
       this.spanOut.style.left = this.outSock.getAbsolutePosition()[0] + "px";
       this.spanOut.style.top = this.outSock.getAbsolutePosition()[1] + "px";
-      this.arrowLines = ArrowsCreatingPath.singleton.creatingPathForSockets(
-        this.inSock,
-        this.outSock,
-        this.isDashed,
-        this.id
-      );
+      $(this.outClick).attr("cx", this.outSock.getAbsolutePosition()[0]);
+      $(this.outClick).attr("cy", this.outSock.getAbsolutePosition()[1]);
     } else {
       this.spanOut.style.left = this.outPoint.x + "px";
       this.spanOut.style.top = this.outPoint.y + "px";
-      let isHorizontal = this.outPoint.findNewPositionReturnIsHorizontal();
-      this.arrowLines =
-        ArrowsCreatingPath.singleton.creatingPathForSocketAndPoint(
-          this.inSock,
-          this.outPoint,
-          this.isDashed,
-          this.id,
-          isHorizontal
-        );
+      $(this.outClick).attr("cx", this.outPoint.x);
+      $(this.outClick).attr("cy", this.outPoint.y);
     }
     if (this.arrowLines.length === 2) {
       this.spanCenter.style.left = $(this.arrowLines[0]).attr("x2") + "px";
@@ -337,6 +385,27 @@ export class Connection {
           2 +
         "px";
     }
+  }
+  update() {
+    if (this.outSock !== null) {
+      this.arrowLines = ArrowsCreatingPath.singleton.creatingPathForSockets(
+        this.inSock,
+        this.outSock,
+        this.isDashed,
+        this.id
+      );
+    } else {
+      let isHorizontal = this.outPoint.findNewPositionReturnIsHorizontal();
+      this.arrowLines =
+        ArrowsCreatingPath.singleton.creatingPathForSocketAndPoint(
+          this.inSock,
+          this.outPoint,
+          this.isDashed,
+          this.id,
+          isHorizontal
+        );
+    }
+    this.definePosAdditionalElements();
     $(this.lineEls).remove();
     $(this.lineClickEls).remove();
     this.checkIfEndAndStartArrowHeadsNeedToBeSwapped();
@@ -345,10 +414,8 @@ export class Connection {
       $(this.el).append(this.arrowLines[i]);
       const clickLine = $(this.arrowLines[i])
         .clone()
-        .attr("stroke-width", 10)
         .addClass("arrow")
-        .css("stroke", this.color)
-        .css("opacity", 0);
+        .css("stroke", this.color);
       if (clickLine.attr("marker-start") !== undefined) {
         clickLine.attr("marker-start", "");
       }
@@ -357,8 +424,9 @@ export class Connection {
       }
       $(this.el).append(clickLine);
     }
-    this.lineEls = $(this.el).find("line").not(".arrow");
     this.lineClickEls = $(this.el).find(".arrow");
+    this.lineEls = $(this.el).find("line").not(".arrow");
+    this.checkIfClickLineNeedsToBeShorter();
     this.changeColor(this.color);
     this.addClickEventToLines();
     if (this.connectedConnections.length !== 0) {

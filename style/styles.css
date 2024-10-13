@@ -166,6 +166,9 @@ svg.node-connection > path {
 
 .arrow {
   pointer-events: all;
+  cursor: pointer;
+  stroke-width: 10;
+  opacity: 0;
 }
 
 #context-menu {
@@ -250,4 +253,24 @@ svg.node-connection > path {
   position: fixed;
   top: 0;
   right: 0;
+}
+
+/* .arrow-edge-click {
+  width: 10;
+  height: 10;
+  border-radius: 50%;
+  background-color: rgb(224, 224, 224);
+  position: absolute;
+  cursor: pointer;
+  margin: auto;
+  opacity: 0;
+} */
+
+.arrow-edge-click {
+  stroke-width: 10;
+  stroke: 2;
+  opacity: 0;
+  fill: black;
+  cursor: pointer;
+  position: absolute;
 }
