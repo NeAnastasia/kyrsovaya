@@ -4,6 +4,7 @@ import { Connector } from "./connector.js";
 import { View } from "./view.js";
 import { ArrowsCreatingPath } from "./arrowsCreatingPath.js";
 import { Point } from "./point.js";
+import { MovingConnection } from "./movingConnection.js";
 
 export class Connection {
   static idCon = 0;
@@ -38,15 +39,15 @@ export class Connection {
     this.parrowTypeEnd = arrowTypeEnd;
     this.arrowTypeEnd = arrowTypeEnd;
     this.spanIn = document.createElement("span");
-    this.spanIn.style.position = "absolute";
+    $(this.spanIn).addClass("cardinal-number");
     this.spanIn.textContent = textStart;
     $(this.spanIn).appendTo("#view-area")[0];
     this.spanOut = document.createElement("span");
-    this.spanOut.style.position = "absolute";
+    $(this.spanOut).addClass("cardinal-number");
     this.spanOut.textContent = textEnd;
     $(this.spanOut).appendTo("#view-area")[0];
     this.spanCenter = document.createElement("span");
-    this.spanCenter.style.position = "absolute";
+    $(this.spanCenter).addClass("cardinal-number");
     this.spanCenter.textContent = textCenter;
     $(this.spanCenter).appendTo("#view-area")[0];
     this.el = $(
@@ -83,15 +84,14 @@ export class Connection {
     $(this.outClick).attr("r", "6").addClass("arrow-edge-click");
     $(this.outClick).appendTo(this.el)[0];
     $(".arrow-edge-click").on("mousedown", (e) => {
-      console.log("grabbed mouse down");
-      console.log($(".node-text-content"));
-      $(".node-text-content").css("user-select", "none");
+      console.log("mlem");
+      $(".node-text-content, .cardinal-number, .node-text").addClass(
+        "no-select"
+      );
+      $("textarea").on("mousedown", View.singleton.preventSelection(e));
       View.singleton.connectionIsMoving = true;
+      MovingConnection.singleton.currentConnection = this;
     });
-    // $(".arrow-edge-click").on("mouseup", (e) => {
-    //   console.log(e.target, "mew", e.relatedTarget);
-    //   View.singleton.connectionIsMoving = false;
-    // });
     this.update();
   }
   destroy() {
@@ -290,7 +290,15 @@ export class Connection {
   addClickEventToLines() {
     $(this.lineClickEls).on("mouseup", (e) => {
       if (View.singleton.connectionIsMoving) {
-        console.log(e.target, "wow", e.relatedTarget);
+        const isConnectingToItself =
+          MovingConnection.singleton.checkIfConnectionIsConnectingToItself(
+            e.target
+          );
+        if (isConnectingToItself) {
+          View.singleton.connectionIsMoving = false;
+          View.singleton.showAlert();
+          MovingConnection.singleton.currentConnection = null;
+        }
       }
     });
     $(this.lineClickEls).click((e) => {

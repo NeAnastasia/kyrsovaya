@@ -1,3 +1,5 @@
+import { View } from "./view.js";
+
 export class TextMenu {
   static singleton = new TextMenu();
   constructor() {
@@ -37,6 +39,7 @@ export class TextMenu {
     this.textEl = null;
   }
   appearing(classes, textEl) {
+    View.singleton.removeAlert();
     this.classes = classes;
     this.textEl = textEl;
     $(this.el).appendTo(document.body);

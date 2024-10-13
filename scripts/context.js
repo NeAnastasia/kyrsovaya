@@ -33,7 +33,7 @@ export class ContextItem {
           pos: pos,
         };
         const n = Node.fromJSON(data);
-        $(".alert").remove();
+        $(".alert-info").remove();
       });
     });
     this.render();

@@ -25,6 +25,11 @@ export class View {
         Selection.singleton.clear();
       }
     });
+    this.alert = $(
+      `<div class="alert alert-danger alert-click" role="alert">
+        Вы не можете присоединить связь к самой себе.
+      </div>`
+    )[0];
   }
   down(e) {
     if (!this.connectionIsMoving) {
@@ -33,7 +38,6 @@ export class View {
       Selection.singleton.clear();
       this._sp = [e.pageX, e.pageY];
       this.opos = [...this.pos];
-      //document.activeElement.blur()
     }
   }
   up(e) {
@@ -42,6 +46,10 @@ export class View {
       e.stopPropagation();
       this.opos = null;
       this._sp = null;
+    } else {
+      $("textarea").off("mousedown");
+      this.connectionIsMoving = false;
+      $(".no-select").removeClass("no-select");
     }
   }
   move(e) {
@@ -59,12 +67,16 @@ export class View {
     }
   }
   click(e) {
-    if ((e.target == this.el || e.target == this.container) && !this.connectionIsMoving) {
+    if (
+      (e.target == this.el || e.target == this.container) &&
+      !this.connectionIsMoving
+    ) {
       if ($(".text-menu").length !== 0) {
         TextMenu.singleton.deleteMenu();
       }
       document.activeElement.blur();
       Selection.singleton.clear();
+      this.removeAlert();
     }
   }
   addNode(n) {
@@ -99,6 +111,17 @@ export class View {
   addConnection(c) {
     this.connections.push(c);
     window.dispatchEvent(new Event("viewupdate"));
+  }
+  preventSelection(event) {
+    event.preventDefault();
+  }
+  showAlert() {
+    $(this.alert).appendTo(document.body);
+  }
+  removeAlert() {
+    if ($(".alert-danger").length !== 0) {
+      $(".alert-danger").remove();
+    }
   }
   update() {
     this.el.style.transform = `translate(${this.pos[0]}px, ${this.pos[1]}px)`;

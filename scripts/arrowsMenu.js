@@ -1,4 +1,5 @@
 import { ArrowType } from "./enum/ArrowType.js";
+import { View } from "./view.js";
 
 export class ArrowsMenu {
   static singleton = new ArrowsMenu();
@@ -93,6 +94,7 @@ export class ArrowsMenu {
   }
 
   appearing(arrow, left, top) {
+    View.singleton.removeAlert();
     this.arrow = arrow;
     $(this.el).appendTo("#view-area")[0];
     $(this.el).on("blur", (e) => {
