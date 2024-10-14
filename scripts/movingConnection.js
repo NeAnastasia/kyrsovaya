@@ -17,4 +17,11 @@ export class MovingConnection {
       }).length > 0
     );
   }
+  deleteCurrentConnection() {
+    this.currentConnection.destroy();
+    this.currentConnection = null;
+  }
+  checkIfCurrentConnectionIsSockPointConnection() {
+    return this.currentConnection.outPoint !== null;
+  }
 }

@@ -51,7 +51,6 @@ export class Point {
     });
     this.x = closestPoint.x;
     this.y = closestPoint.y;
-
     return $(closestLine).attr("y1") === $(closestLine).attr("y2");
   }
 }

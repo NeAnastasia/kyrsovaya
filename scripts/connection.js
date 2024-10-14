@@ -85,14 +85,12 @@ export class Connection {
     $(this.outClick).appendTo(this.el)[0];
     $(".arrow-edge-click").on("mousedown", (e) => {
       if (!View.singleton.connectionIsMoving) {
-        console.log("mlem");
         $(".node-text-content, .cardinal-number, .node-text").addClass(
           "no-select"
         );
         $("textarea").on("mousedown", View.singleton.preventSelection(e));
         View.singleton.connectionIsMoving = true;
         MovingConnection.singleton.currentConnection = this;
-        console.log("formovingconnect this", this);
         if (e.target === this.outClick && this.inSock !== null) {
           Connector.singleton.currentSocket = this.inSock;
         } else if (e.target === this.inClick && this.outSock !== null) {
@@ -211,33 +209,68 @@ export class Connection {
     $(this.lineEls).css("stroke", this.color);
     this.changeColorArrowHead();
   }
-  checkIfEndAndStartArrowHeadsNeedToBeSwapped() {
-    if (
-      $(this.arrowLines[0]).attr("marker-start") ===
-      `url(#arrowhead-${this.id}-end)`
-    ) {
-      this.isArrowsReversed = true;
-      switch (this.arrowTypeEnd) {
-        case ArrowType.DefaultEnd:
-          this.arrowTypeEnd = ArrowType.DefaultStart;
-          break;
-        case ArrowType.FilledEnd:
-          this.arrowTypeEnd = ArrowType.FilledStart;
-          break;
-        case ArrowType.HollowEnd:
-          this.arrowTypeEnd = ArrowType.HollowStart;
-          break;
+  swapArrowHeads() {
+    switch (this.arrowTypeEnd) {
+      case ArrowType.DefaultEnd:
+        this.arrowTypeEnd = ArrowType.DefaultStart;
+        break;
+      case ArrowType.FilledEnd:
+        this.arrowTypeEnd = ArrowType.FilledStart;
+        break;
+      case ArrowType.HollowEnd:
+        this.arrowTypeEnd = ArrowType.HollowStart;
+        break;
+    }
+    switch (this.arrowTypeStart) {
+      case ArrowType.DefaultStart:
+        this.arrowTypeStart = ArrowType.DefaultEnd;
+        break;
+      case ArrowType.FilledStart:
+        this.arrowTypeStart = ArrowType.FilledEnd;
+        break;
+      case ArrowType.HollowStart:
+        this.arrowTypeStart = ArrowType.HollowEnd;
+        break;
+    }
+  }
+  unswapArrowHeads() {
+    switch (this.arrowTypeEnd) {
+      case ArrowType.DefaultStart:
+        this.arrowTypeEnd = ArrowType.DefaultEnd;
+        break;
+      case ArrowType.FilledStart:
+        this.arrowTypeEnd = ArrowType.FilledEnd;
+        break;
+      case ArrowType.HollowStart:
+        this.arrowTypeEnd = ArrowType.HollowEnd;
+        break;
+    }
+    switch (this.arrowTypeStart) {
+      case ArrowType.DefaultEnd:
+        this.arrowTypeStart = ArrowType.DefaultStart;
+        break;
+      case ArrowType.FilledEnd:
+        this.arrowTypeStart = ArrowType.FilledStart;
+        break;
+      case ArrowType.HollowEnd:
+        this.arrowTypeStart = ArrowType.HollowStart;
+        break;
+    }
+    this.update();
+  }
+  changeLengthOfLineInSakeOfArrowHead() {
+    const line = this.arrowLines[this.arrowLines.length - 1];
+    if ($(line).attr("y1") === $(line).attr("y2")) {
+      if ($(line).attr("x1") < $(line).attr("x2")) {
+        $(line).attr("x2", parseFloat($(line).attr("x2")) - 20);
+      } else {
+        $(line).attr("x2", parseFloat($(line).attr("x2")) + 20);
       }
-      switch (this.arrowTypeStart) {
-        case ArrowType.DefaultStart:
-          this.arrowTypeStart = ArrowType.DefaultEnd;
-          break;
-        case ArrowType.FilledStart:
-          this.arrowTypeStart = ArrowType.FilledEnd;
-          break;
-        case ArrowType.HollowStart:
-          this.arrowTypeStart = ArrowType.HollowEnd;
-          break;
+    } else {
+      if ($(line).attr("y1") < $(line).attr("y2")) {
+        $(line).attr("y2", parseFloat($(line).attr("y2")) - 20);
+      } else {
+        $(line).attr("y2", parseFloat($(line).attr("y2")) + 20);
       }
     }
   }
@@ -269,20 +302,7 @@ export class Connection {
         $(this.markerELEnd).attr("refX", `10`);
       } else {
         if (this.outPoint !== null) {
-          const line = this.arrowLines[this.arrowLines.length - 1];
-          if ($(line).attr("y1") === $(line).attr("y2")) {
-            if ($(line).attr("x1") < $(line).attr("x2")) {
-              $(line).attr("x2", parseFloat($(line).attr("x2")) - 20);
-            } else {
-              $(line).attr("x2", parseFloat($(line).attr("x2")) + 20);
-            }
-          } else {
-            if ($(line).attr("y1") < $(line).attr("y2")) {
-              $(line).attr("y2", parseFloat($(line).attr("y2")) - 20);
-            } else {
-              $(line).attr("y2", parseFloat($(line).attr("y2")) + 20);
-            }
-          }
+          this.changeLengthOfLineInSakeOfArrowHead();
           $(this.markerELEnd).attr("refX", `0`);
         } else {
           $(this.markerELEnd).attr("refX", `0`);
@@ -297,31 +317,37 @@ export class Connection {
   }
   addClickEventToLines() {
     $(this.lineClickEls).on("mouseup", (e) => {
-      console.log("aaa", View.singleton.connectionIsMoving);
       if (View.singleton.connectionIsMoving) {
-        const isConnectingToItself =
+        if (
           MovingConnection.singleton.checkIfConnectionIsConnectingToItself(
-            e.target
-          );
-        console.log("isConnectingToItself", isConnectingToItself);
-        if (isConnectingToItself) {
-          View.singleton.connectionIsMoving = false;
-          View.singleton.showAlert();
+            this.lineEls[$(this.lineClickEls).index(e.target)]
+          )
+        ) {
+          View.singleton.showAlertForConnectingConnectionToItself();
+          Connector.singleton.currentSocket = null;
           MovingConnection.singleton.currentConnection = null;
         } else {
-          const point = new Point(
-            e.pageX - View.singleton.pos[0],
-            e.pageY - View.singleton.pos[1],
-            this
-          );
-          point.findNewPositionReturnIsHorizontal();
-          console.log("waa", this.outPoint === point);
-          if (this.outPoint === point) {
-            View.singleton.connectionIsMoving = false;
+          if (
+            MovingConnection.singleton.checkIfCurrentConnectionIsSockPointConnection() &&
+            Connector.singleton.currentSocket === null
+          ) {
+            View.singleton.showAlertForConnectingSockPointConnectionToConnectionBySock();
             MovingConnection.singleton.currentConnection = null;
-            Connector.singleton.currentSocket = null;
           } else {
-            Connector.singleton.reconnectAssotiation(point, this);
+            const point = new Point(
+              e.pageX - View.singleton.pos[0],
+              e.pageY - View.singleton.pos[1],
+              this
+            );
+            point.findNewPositionReturnIsHorizontal();
+            if (this.outPoint === point) {
+              View.singleton.connectionIsMoving = false;
+              MovingConnection.singleton.currentConnection = null;
+              Connector.singleton.currentSocket = null;
+            } else {
+              Connector.singleton.reconnectAssociation(point, this);
+              MovingConnection.singleton.deleteCurrentConnection();
+            }
           }
         }
       }
@@ -360,9 +386,9 @@ export class Connection {
     let line = this.lineClickEls[this.lineClickEls.length - 1];
     if ($(line).attr("y1") === $(line).attr("y2")) {
       if ($(line).attr("x1") > $(line).attr("x2")) {
-        $(line).attr("x2", parseFloat($(line).attr("x2")) - 7);
-      } else {
         $(line).attr("x2", parseFloat($(line).attr("x2")) + 7);
+      } else {
+        $(line).attr("x2", parseFloat($(line).attr("x2")) - 7);
       }
     } else {
       if ($(line).attr("y1") > $(line).attr("y2")) {
@@ -438,10 +464,16 @@ export class Connection {
           isHorizontal
         );
     }
+    if (
+      $(this.arrowLines[0]).attr("marker-start") ===
+      `url(#arrowhead-${this.id}-end)`
+    ) {
+      this.isArrowsReversed = true;
+      this.swapArrowHeads();
+    }
     this.definePosAdditionalElements();
     $(this.lineEls).remove();
     $(this.lineClickEls).remove();
-    this.checkIfEndAndStartArrowHeadsNeedToBeSwapped();
     this.checkIfArrowsNeedToBeChanged();
     for (var i = 0; i < this.arrowLines.length; i++) {
       $(this.el).append(this.arrowLines[i]);

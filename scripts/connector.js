@@ -1,62 +1,89 @@
 import { Connection } from "./connection.js";
 import { MovingConnection } from "./movingConnection.js";
 import { View } from "./view.js";
+import { ArrowType } from "./enum/ArrowType.js";
 
 export class Connector {
   static singleton = new Connector();
   constructor() {
     this.currentSocket = null;
   }
-  reconnectAssotiation(point, targetConnection) {
+  reconnectAssociation(point, targetConnection) {
+    const oldConnection = MovingConnection.singleton.currentConnection;
+    let conn = new Connection(
+      this.currentSocket,
+      null,
+      point,
+      oldConnection.arrowTypeStart,
+      oldConnection.arrowTypeEnd,
+      oldConnection.isDashed,
+      oldConnection.spanCenter.textContent,
+      oldConnection.spanOut.textContent,
+      oldConnection.spanIn.textContent,
+      oldConnection.id,
+      oldConnection.color
+    );
+    if (oldConnection.outSock === this.currentSocket) {
+      conn.reverseArrowHeads();
+      conn.spanIn.textContent = oldConnection.spanOut.textContent;
+      conn.spanOut.textContent = oldConnection.spanIn.textContent;
+    }
+    if (oldConnection.isArrowsReversed) {
+      conn.unswapArrowHeads();
+    }
+    targetConnection.connectedConnections.push(conn);
+    this.connect(conn);
+  }
+  reconnectSockets(sock) {
     let conn;
     const oldConnection = MovingConnection.singleton.currentConnection;
-    if (oldConnection.inSock !== null) {
-      console.log("nen");
-      console.log(oldConnection);
+    if (this.currentSocket === oldConnection.inSock) {
       conn = new Connection(
         this.currentSocket,
+        sock,
         null,
-        point,
         oldConnection.arrowTypeStart,
         oldConnection.arrowTypeEnd,
         oldConnection.isDashed,
-        oldConnection.textCenter,
-        oldConnection.textEnd,
-        oldConnection.textStart,
+        oldConnection.spanCenter.textContent,
+        oldConnection.spanOut.textContent,
+        oldConnection.spanIn.textContent,
         oldConnection.id,
         oldConnection.color
       );
-    } else if (oldConnection.outSock !== null) {
-      console.log("arr");
+    } else {
       conn = new Connection(
-        null,
+        sock,
         this.currentSocket,
-        point,
+        null,
         oldConnection.arrowTypeStart,
         oldConnection.arrowTypeEnd,
         oldConnection.isDashed,
-        oldConnection.textCenter,
-        oldConnection.textEnd,
-        oldConnection.textStart,
+        oldConnection.spanCenter.textContent,
+        oldConnection.spanOut.textContent,
+        oldConnection.spanIn.textContent,
         oldConnection.id,
         oldConnection.color
       );
     }
-    // arrowTypeStart = ArrowType.None,
-    // arrowTypeEnd = ArrowType.DefaultEnd,
-    // isDashed = false,
-    // textCenter = "",
-    // textEnd = "",
-    // textStart = "",
-    // id = "",
-    // color = "#000000"
-    console.log(conn);
-    targetConnection.connectedConnections.push(conn);
+    conn.connectedConnections = oldConnection.connectedConnections;
+    $(conn.connectedConnections).each((i, connectedConn) => {
+      connectedConn.outPoint.connectionParent = conn;
+    });
+    sock.addConnection(conn);
+    conn.update();
     this.connect(conn);
   }
   connectAssociation(point, targetConnection) {
     console.log("associated");
-    const conn = new Connection(this.currentSocket, null, point);
+    const conn = new Connection(
+      this.currentSocket,
+      null,
+      point,
+      ArrowType.None,
+      ArrowType.None,
+      true
+    );
     targetConnection.connectedConnections.push(conn);
     this.connect(conn);
   }

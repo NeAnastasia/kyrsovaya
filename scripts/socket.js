@@ -1,4 +1,6 @@
 import { Connector } from "./connector.js";
+import { MovingConnection } from "./movingConnection.js";
+import { View } from "./view.js";
 
 export class Socket {
   constructor(el, parent = null, type = "up") {
@@ -18,6 +20,22 @@ export class Socket {
       } else {
         Connector.singleton.connectSockets(this);
         console.log("connected");
+      }
+    });
+    $(this.el).on("mouseup", (e) => {
+      if (View.singleton.connectionIsMoving) {
+        if (MovingConnection.singleton.currentConnection.outPoint !== null) {
+          Connector.singleton.currentSocket = this;
+          Connector.singleton.reconnectAssociation(
+            MovingConnection.singleton.currentConnection.outPoint,
+            MovingConnection.singleton.currentConnection.outPoint
+              .connectionParent
+          );
+          MovingConnection.singleton.deleteCurrentConnection();
+        } else {
+          Connector.singleton.reconnectSockets(this);
+          MovingConnection.singleton.deleteCurrentConnection();
+        }
       }
     });
   }

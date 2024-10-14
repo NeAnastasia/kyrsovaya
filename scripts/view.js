@@ -1,5 +1,7 @@
 import { Connection } from "./connection.js";
+import { Connector } from "./connector.js";
 import { Draggable } from "./draggable.js";
+import { MovingConnection } from "./movingConnection.js";
 import { Selection } from "./selection.js";
 import { TextMenu } from "./textMenu.js";
 
@@ -9,6 +11,7 @@ export class View {
     this.el = $("#view-area")[0];
     this.container = $("#view")[0];
     this.connectionIsMoving = false;
+    this.isMouseDownHappened = false;
     this.container.addEventListener("mousedown", this.down.bind(this));
     window.addEventListener("mouseup", this.up.bind(this));
     window.addEventListener("mousemove", this.move.bind(this));
@@ -27,7 +30,6 @@ export class View {
     });
     this.alert = $(
       `<div class="alert alert-danger alert-click" role="alert">
-        Вы не можете присоединить связь к самой себе.
       </div>`
     )[0];
   }
@@ -47,9 +49,7 @@ export class View {
       this.opos = null;
       this._sp = null;
     } else {
-      $("textarea").off("mousedown");
-      this.connectionIsMoving = false;
-      $(".no-select").removeClass("no-select");
+      this.resetAftermathOfMovingConnection();
     }
   }
   move(e) {
@@ -68,8 +68,9 @@ export class View {
   }
   click(e) {
     if (
-      (e.target == this.el || e.target == this.container) &&
-      !this.connectionIsMoving
+      !this.connectionIsMoving &&
+      !this.isMouseDownHappened &&
+      (e.target == this.el || e.target == this.container)
     ) {
       if ($(".text-menu").length !== 0) {
         TextMenu.singleton.deleteMenu();
@@ -77,6 +78,8 @@ export class View {
       document.activeElement.blur();
       Selection.singleton.clear();
       this.removeAlert();
+    } else {
+      this.isMouseDownHappened = false;
     }
   }
   addNode(n) {
@@ -115,16 +118,34 @@ export class View {
   preventSelection(event) {
     event.preventDefault();
   }
+  showAlertForConnectingSockPointConnectionToConnectionBySock() {
+    this.isMouseDownHappened = true;
+    this.alert.textContent = "Вы не можете соединять связи";
+    this.showAlert();
+  }
+  showAlertForConnectingConnectionToItself() {
+    this.alert.textContent = "Вы не можете присоединить связь к самой себе.";
+    this.showAlert();
+  }
   showAlert() {
     $(this.alert).appendTo(document.body);
+    this.connectionIsMoving = false;
   }
   removeAlert() {
     if ($(".alert-danger").length !== 0) {
       $(".alert-danger").remove();
+      this.resetAftermathOfMovingConnection();
     }
   }
   update() {
     this.el.style.transform = `translate(${this.pos[0]}px, ${this.pos[1]}px)`;
+  }
+  resetAftermathOfMovingConnection() {
+    $("textarea").off("mousedown");
+    this.connectionIsMoving = false;
+    $(".no-select").removeClass("no-select");
+    MovingConnection.singleton.currentConnection = null;
+    Connector.singleton.currentSocket = null;
   }
   toJSON() {
     const ret = {
