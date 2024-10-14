@@ -84,13 +84,21 @@ export class Connection {
     $(this.outClick).attr("r", "6").addClass("arrow-edge-click");
     $(this.outClick).appendTo(this.el)[0];
     $(".arrow-edge-click").on("mousedown", (e) => {
-      console.log("mlem");
-      $(".node-text-content, .cardinal-number, .node-text").addClass(
-        "no-select"
-      );
-      $("textarea").on("mousedown", View.singleton.preventSelection(e));
-      View.singleton.connectionIsMoving = true;
-      MovingConnection.singleton.currentConnection = this;
+      if (!View.singleton.connectionIsMoving) {
+        console.log("mlem");
+        $(".node-text-content, .cardinal-number, .node-text").addClass(
+          "no-select"
+        );
+        $("textarea").on("mousedown", View.singleton.preventSelection(e));
+        View.singleton.connectionIsMoving = true;
+        MovingConnection.singleton.currentConnection = this;
+        console.log("formovingconnect this", this);
+        if (e.target === this.outClick && this.inSock !== null) {
+          Connector.singleton.currentSocket = this.inSock;
+        } else if (e.target === this.inClick && this.outSock !== null) {
+          Connector.singleton.currentSocket = this.outSock;
+        }
+      }
     });
     this.update();
   }
@@ -289,15 +297,32 @@ export class Connection {
   }
   addClickEventToLines() {
     $(this.lineClickEls).on("mouseup", (e) => {
+      console.log("aaa", View.singleton.connectionIsMoving);
       if (View.singleton.connectionIsMoving) {
         const isConnectingToItself =
           MovingConnection.singleton.checkIfConnectionIsConnectingToItself(
             e.target
           );
+        console.log("isConnectingToItself", isConnectingToItself);
         if (isConnectingToItself) {
           View.singleton.connectionIsMoving = false;
           View.singleton.showAlert();
           MovingConnection.singleton.currentConnection = null;
+        } else {
+          const point = new Point(
+            e.pageX - View.singleton.pos[0],
+            e.pageY - View.singleton.pos[1],
+            this
+          );
+          point.findNewPositionReturnIsHorizontal();
+          console.log("waa", this.outPoint === point);
+          if (this.outPoint === point) {
+            View.singleton.connectionIsMoving = false;
+            MovingConnection.singleton.currentConnection = null;
+            Connector.singleton.currentSocket = null;
+          } else {
+            Connector.singleton.reconnectAssotiation(point, this);
+          }
         }
       }
     });
