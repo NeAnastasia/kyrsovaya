@@ -31,6 +31,7 @@ export class Node {
       Node.idC = parseInt(id.replace("node-", ""), 10);
       Node.idC = Node.idC + 1;
     }
+    this.isDblClick = false;
     this.type = type;
     this.ptype = this.type;
     Node.nodes[parseInt(id.replace("node-", ""), 10)] = this;
@@ -110,6 +111,7 @@ export class Node {
     };
     this.el.classList.add(this.type);
     this.name = name;
+    this.contentEls = $(this.el).find(".node-text-content");
     this.textEl = $(this.el).find(".node-text")[0];
     this.textEl.addEventListener("keydown", (e) => {
       if (e.keyCode == 13) {
@@ -117,30 +119,33 @@ export class Node {
         e.stopPropagation();
       }
     });
-    $(this.textEl).click((e) => {
-      if ($(".text-menu").length === 0) {
-        TextMenu.singleton.appearing(e.target.classList, e.target);
+    const allTextElements = $(this.textEl).add(this.contentEls);
+    $(allTextElements).on("dblclick", (e) => {
+      this.isDblClick = true;
+      let target;
+      if (
+        $(e.target).hasClass("node-text-content") ||
+        $(e.target).hasClass("node-text")
+      ) {
+        target = e.target;
       } else {
-        TextMenu.singleton.changeObject(e.target.classList, e.target);
+        target = $(e.target).closest('.node-text-content');
       }
-      $(this.textEl).attr("contenteditable", true);
-      this.textEl.focus();
-      window.getSelection().selectAllChildren(this.textEl);
-    });
-    $(document.getElementsByClassName("node-text-content")).click((e) => {
-      e.stopPropagation();
       if ($(".text-menu").length === 0) {
-        TextMenu.singleton.appearing(e.target.classList, e.target);
+        TextMenu.singleton.appearing(target);
       } else {
-        TextMenu.singleton.changeObject(e.target.classList, e.target);
+        TextMenu.singleton.changeObject(target);
       }
+      $(target).attr("contenteditable", true);
+      target.focus();
     });
-    $(this.textEl).on("focusout", (e) => {
+    $(allTextElements).on("focusout", (e) => {
+      this.isDblClick = false;
       this.onRename(e);
-      $(this.textEl).attr("contenteditable", false);
+      $(e.target).attr("contenteditable", false);
       window.dispatchEvent(new Event("viewupdate"));
     });
-    this.textEl.addEventListener("input", (e) => {
+    $(this.textEl).on("input", (e) => {
       this.onRename(e);
     });
     window.addEventListener("mousemove", this.#mmraw.bind(this));
@@ -454,9 +459,10 @@ class ObjectNode extends Node {
     this.textContentEl = $(this.el).find(".node-text-content");
     this.textContentEl.html(this.textContent);
     this.textContentEl.on("input", () => {
-      this.textContent = this.textContentEl.val();
+      this.textContent = this.textContentEl.html();
       window.dispatchEvent(new Event("viewupdate"));
     });
+    this.update();
   }
 
   onContentEdited(e) {
@@ -492,8 +498,8 @@ class ObjectNode extends Node {
       return;
     }
 
-    if (this.textContent != this.textContentEl.val()) {
-      this.textContentEl.val(this.textContent);
+    if (this.textContentEl.html() !== this.textContent) {
+      this.textContentEl.html(this.textContent);
     }
     $(this.lines[0])
       .attr("x1", "0")
@@ -543,23 +549,20 @@ class ClassNode extends Node {
     this.textContent2 = methodTexts || "";
     this.textContentEl1 = $($(this.el).find(".node-text-content")[0]);
     this.textContentEl2 = $($(this.el).find(".node-text-content")[1]);
-    this.textContentEl1.val(this.textContent1);
-    this.textContentEl2.val(this.textContent2);
+    this.textContentEl1.html(this.textContent1);
+    this.textContentEl2.html(this.textContent2);
 
-    this.textContentEl1.on("input", () => {
-      this.textContent1 = this.textContentEl1.val();
-      this.checkPlus();
+    $(this.textContentEl1).on("input", () => {
+      this.textContent1 = this.textContentEl1.html();
+      this.update();
       window.dispatchEvent(new Event("viewupdate"));
     });
-    this.textContentEl2.on("input", () => {
-      this.textContent2 = this.textContentEl2.val();
-      this.checkPlus();
+    $(this.textContentEl2).on("input", () => {
+      this.textContent2 = this.textContentEl2.html();
+      this.update();
       window.dispatchEvent(new Event("viewupdate"));
     });
     this.container = $(this.el).find(".node-inner");
-    this.checkPlus();
-  }
-  checkPlus() {
     this.update();
   }
   get totalWidth() {
@@ -570,15 +573,11 @@ class ClassNode extends Node {
   }
   update() {
     super.update();
+
     if (!this.svgArea) {
       return;
     }
-    if (this.textContentEl1.val() != this.textContent1) {
-      this.textContentEl1.val(this.textContent1);
-    }
-    if (this.textContentEl2.val() != this.textContent2) {
-      this.textContentEl2.val(this.textContent2);
-    }
+
     this.rect.attr("x", "0").attr({
       x: "0",
       y: "0",

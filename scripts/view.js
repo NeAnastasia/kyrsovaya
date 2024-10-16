@@ -141,7 +141,6 @@ export class View {
     this.el.style.transform = `translate(${this.pos[0]}px, ${this.pos[1]}px)`;
   }
   resetAftermathOfMovingConnection() {
-    $("textarea").off("mousedown");
     this.connectionIsMoving = false;
     $(".no-select").removeClass("no-select");
     MovingConnection.singleton.currentConnection = null;

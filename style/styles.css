@@ -41,9 +41,12 @@ svg.node-connection > path {
 
 .node-text,
 .node-text-content {
-  min-width: 40px;
   min-height: 40px;
   text-align: center;
+}
+
+.node-text {
+  min-width: 40px;
 }
 
 .node.object .node-text {
@@ -216,7 +219,8 @@ svg.node-connection > path {
   background-color: rgb(224, 224, 224);
 }
 
-.node textarea {
+.node .node-text-content {
+  border-top: solid 2px black;
   resize: none;
   overflow: hidden;
   width: 100%;
@@ -225,7 +229,7 @@ svg.node-connection > path {
   cursor: inherit;
 }
 
-.node.class textarea {
+.node.class .node-text-content {
   text-align: left;
 }
 

@@ -88,7 +88,6 @@ export class Connection {
         $(".node-text-content, .cardinal-number, .node-text").addClass(
           "no-select"
         );
-        $("textarea").on("mousedown", View.singleton.preventSelection(e));
         View.singleton.connectionIsMoving = true;
         MovingConnection.singleton.currentConnection = this;
         if (e.target === this.outClick && this.inSock !== null) {

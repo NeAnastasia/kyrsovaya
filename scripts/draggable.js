@@ -1,3 +1,4 @@
+import { View } from "./view.js";
 export class Draggable {
   constructor(
     el,
@@ -16,8 +17,17 @@ export class Draggable {
   }
   down(e) {
     e.stopPropagation();
-    if (this.sp != null) {
+    if (
+      this.sp != null ||
+      ($(document.activeElement).hasClass("node-text") &&
+        $(e.target).hasClass("node-text")) ||
+      ($(document.activeElement).hasClass("node-text-content") &&
+        ($(e.target).hasClass("node-text-content") || $(e.target).closest('.node-text-content').length !== 0))
+    ) {
       return;
+    }
+    if (!View.singleton.nodes.find((node) => node.el === this.el).isDblClick) {
+      e.preventDefault();
     }
     this._sp = [e.pageX, e.pageY];
     this.md(e, this._sp);

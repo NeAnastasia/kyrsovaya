@@ -38,9 +38,8 @@ export class TextMenu {
     this.classes = [];
     this.textEl = null;
   }
-  appearing(classes, textEl) {
+  appearing(textEl) {
     View.singleton.removeAlert();
-    this.classes = classes;
     this.textEl = textEl;
     $(this.el).appendTo(document.body);
     document.querySelector("#checkbox-bold").checked = false;
@@ -48,25 +47,15 @@ export class TextMenu {
     document.querySelector("#checkbox-underline").checked = false;
     document.querySelector("#checkbox-line-through").checked = false;
 
-    if (this.classes.contains("bold")) {
-      document.querySelector("#checkbox-bold").checked = true;
-    }
-    if (this.classes.contains("italic")) {
-      document.querySelector("#checkbox-italic").checked = true;
-    }
-    if (this.classes.contains("text-decoration-underline")) {
-      document.querySelector("#checkbox-underline").checked = true;
-    }
-    if (this.classes.contains("text-decoration-line-through")) {
-      document.querySelector("#checkbox-line-through").checked = true;
-    }
-
+    this.addEvent();
     $(document.getElementById("checkbox-bold")).blur((e) => {
       if (
         e.relatedTarget !== document.querySelector(".text-menu") &&
         e.relatedTarget !== document.querySelector("#checkbox-italic") &&
         e.relatedTarget !== document.querySelector("#checkbox-underline") &&
-        e.relatedTarget !== document.querySelector("#checkbox-line-through")
+        e.relatedTarget !== document.querySelector("#checkbox-line-through") &&
+        $(e.relatedTarget).closest(".node-text").length === 0 &&
+        $(e.relatedTarget).closest(".node-text-content").length === 0
       ) {
         this.deleteMenu();
       }
@@ -77,7 +66,9 @@ export class TextMenu {
         e.relatedTarget !== document.querySelector(".text-menu") &&
         e.relatedTarget !== document.querySelector("#checkbox-bold") &&
         e.relatedTarget !== document.querySelector("#checkbox-underline") &&
-        e.relatedTarget !== document.querySelector("#checkbox-line-through")
+        e.relatedTarget !== document.querySelector("#checkbox-line-through") &&
+        $(e.relatedTarget).closest(".node-text").length === 0 &&
+        $(e.relatedTarget).closest(".node-text-content").length === 0
       ) {
         this.deleteMenu();
       }
@@ -88,7 +79,9 @@ export class TextMenu {
         e.relatedTarget !== document.querySelector(".text-menu") &&
         e.relatedTarget !== document.querySelector("#checkbox-bold") &&
         e.relatedTarget !== document.querySelector("#checkbox-italic") &&
-        e.relatedTarget !== document.querySelector("#checkbox-line-through")
+        e.relatedTarget !== document.querySelector("#checkbox-line-through") &&
+        $(e.relatedTarget).closest(".node-text").length === 0 &&
+        $(e.relatedTarget).closest(".node-text-content").length === 0
       ) {
         this.deleteMenu();
       }
@@ -99,23 +92,92 @@ export class TextMenu {
         e.relatedTarget !== document.querySelector(".text-menu") &&
         e.relatedTarget !== document.querySelector("#checkbox-bold") &&
         e.relatedTarget !== document.querySelector("#checkbox-italic") &&
-        e.relatedTarget !== document.querySelector("#checkbox-underline")
+        e.relatedTarget !== document.querySelector("#checkbox-underline") &&
+        $(e.relatedTarget).closest(".node-text").length === 0 &&
+        $(e.relatedTarget).closest(".node-text-content").length === 0
       ) {
         this.deleteMenu();
       }
     });
 
     $(document.getElementsByClassName("form-check-input")).click((e) => {
-      if (e.target.checked) {
-        this.textEl.classList.add(e.target.value);
-      } else {
-        this.textEl.classList.remove(e.target.value);
+      const selection = window.getSelection();
+      console.log(selection);
+      if (selection.rangeCount > 0) {
+        const range = selection.getRangeAt(0);
+        const selectedText = range.extractContents();
+        console.log(selectedText);
+        const selectedNode = range.commonAncestorContainer;
+
+        const parentElement =
+          selectedNode.nodeType === Node.TEXT_NODE
+            ? selectedNode.parentNode
+            : selectedNode;
+
+        console.log(
+          "Выделенный текст заключён в тег:",
+          parentElement,
+          parentElement.parentNode
+        );
+
+        const span = document.createElement("span");
+        span.classList.add(e.target.value);
+        span.appendChild(selectedText);
+
+        range.insertNode(span);
+        selection.removeAllRanges();
       }
+      // if (e.target.checked) {
+      //   this.textEl.classList.add(e.target.value);
+      // } else {
+      //   this.textEl.classList.remove(e.target.value);
+      // }
     });
   }
-  changeObject(classes, textEl) {
-    this.classes = classes;
+  changeObject(textEl) {
     this.textEl = textEl;
+    this.addEvent();
+  }
+  addEvent() {
+    console.log(this.textEl);
+    $(this.textEl).on("mouseup", (e) => {
+      if (document.activeElement === this.textEl) {
+        const selection = window.getSelection();
+
+        if (selection.rangeCount > 0) {
+          const range = selection.getRangeAt(0);
+          const selectedNode = range.commonAncestorContainer;
+
+          const parentElement =
+            selectedNode.nodeType === Node.TEXT_NODE
+              ? selectedNode.parentNode
+              : selectedNode;
+
+          const neededNode = parentElement.parentNode;
+
+          if (neededNode.classList.contains("bold")) {
+            document.querySelector("#checkbox-bold").checked = true;
+          } else {
+            document.querySelector("#checkbox-bold").checked = false;
+          }
+          if (neededNode.classList.contains("italic")) {
+            document.querySelector("#checkbox-italic").checked = true;
+          } else {
+            document.querySelector("#checkbox-italic").checked = false;
+          }
+          if (neededNode.classList.contains("text-decoration-underline")) {
+            document.querySelector("#checkbox-underline").checked = true;
+          } else {
+            document.querySelector("#checkbox-underline").checked = false;
+          }
+          if (neededNode.classList.contains("text-decoration-line-through")) {
+            document.querySelector("#checkbox-line-through").checked = true;
+          } else {
+            document.querySelector("#checkbox-line-through").checked = false;
+          }
+        }
+      }
+    });
   }
   deleteMenu() {
     $(".text-menu").remove();
