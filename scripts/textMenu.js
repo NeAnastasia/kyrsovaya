@@ -102,36 +102,82 @@ export class TextMenu {
 
     $(document.getElementsByClassName("form-check-input")).click((e) => {
       const selection = window.getSelection();
-      console.log(selection);
-      if (selection.rangeCount > 0) {
+      const selectionString = selection.toString();
+      if (selection.rangeCount > 0 && selectionString !== "") {
         const range = selection.getRangeAt(0);
-        const selectedText = range.extractContents();
-        console.log(selectedText);
         const selectedNode = range.commonAncestorContainer;
 
-        const parentElement =
-          selectedNode.nodeType === Node.TEXT_NODE
-            ? selectedNode.parentNode
-            : selectedNode;
+        let neededNode =
+          selectedNode.nodeType === 3 ? selectedNode.parentNode : selectedNode; //3 = Node.TEXT_NODE
 
-        console.log(
-          "Выделенный текст заключён в тег:",
-          parentElement,
-          parentElement.parentNode
-        );
+        if (e.target.checked) {
+          if (selectionString === neededNode.textContent) {
+            neededNode.classList.add(e.target.value);
+          } else {
+            const selectedText = range.extractContents();
+            const span = document.createElement("span");
+            span.classList.add(e.target.value);
+            span.appendChild(selectedText);
 
-        const span = document.createElement("span");
-        span.classList.add(e.target.value);
-        span.appendChild(selectedText);
+            range.insertNode(span);
+            selection.removeAllRanges();
+          }
+        } else {
+          if (selectionString === neededNode.textContent) {
+            neededNode.classList.remove(e.target.value);
+            if (neededNode.classList.length === 0) {
+              const textToInsert = selectionString;
+              neededNode.insertAdjacentText("beforebegin", textToInsert);
+              neededNode.remove();
+            }
+          } else {
+            let targetClassList = neededNode.classList;
+            let textBeforeSpan = document.createElement("span");
+            $(targetClassList).each((i, classEl) => {
+              textBeforeSpan.classList.add(classEl);
+            });
+            let textAfterSpan = document.createElement("span");
+            $(targetClassList).each((i, classEl) => {
+              textAfterSpan.classList.add(classEl);
+            });
+            const startContainer = range.startContainer;
+            const endContainer = range.endContainer;
+            if (startContainer.parentNode !== endContainer.parentNode) {
+              return;
+            }
+            targetClassList.remove(e.target.value);
 
-        range.insertNode(span);
-        selection.removeAllRanges();
+            let wrapper;
+            if (targetClassList.length !== 0) {
+              wrapper = document.createElement("span");
+              $(targetClassList).each((i, classEl) => {
+                wrapper.classList.add(classEl);
+              });
+              wrapper.textContent = selectionString;
+            } else {
+              wrapper = document.createTextNode(selectionString);
+            }
+            const textBefore = startContainer.textContent.slice(
+              0,
+              range.startOffset
+            );
+            const textAfter = startContainer.textContent.slice(range.endOffset);
+
+            const nodeTextContent = startContainer.parentNode;
+            const newContent = document.createDocumentFragment();
+            textBeforeSpan.textContent = textBefore;
+            newContent.append(textBeforeSpan);
+
+            newContent.append(wrapper);
+            textAfterSpan.textContent = textAfter;
+            newContent.append(textAfterSpan);
+            nodeTextContent.innerHTML = "";
+            nodeTextContent.append(newContent);
+
+            selection.removeAllRanges();
+          }
+        }
       }
-      // if (e.target.checked) {
-      //   this.textEl.classList.add(e.target.value);
-      // } else {
-      //   this.textEl.classList.remove(e.target.value);
-      // }
     });
   }
   changeObject(textEl) {
@@ -139,45 +185,87 @@ export class TextMenu {
     this.addEvent();
   }
   addEvent() {
-    console.log(this.textEl);
-    $(this.textEl).on("mouseup", (e) => {
-      if (document.activeElement === this.textEl) {
-        const selection = window.getSelection();
+    $(this.textEl)
+      .off("mouseup")
+      .on("mouseup", (e) => {
+        if (
+          document.activeElement === this.textEl[0] ||
+          document.activeElement === this.textEl
+        ) {
+          const selection = window.getSelection();
 
-        if (selection.rangeCount > 0) {
-          const range = selection.getRangeAt(0);
-          const selectedNode = range.commonAncestorContainer;
+          if (selection.rangeCount > 0 && selection.toString() !== "") {
+            const range = selection.getRangeAt(0);
+            const selectedNode = range.commonAncestorContainer;
 
-          const parentElement =
-            selectedNode.nodeType === Node.TEXT_NODE
-              ? selectedNode.parentNode
-              : selectedNode;
-
-          const neededNode = parentElement.parentNode;
-
-          if (neededNode.classList.contains("bold")) {
-            document.querySelector("#checkbox-bold").checked = true;
-          } else {
-            document.querySelector("#checkbox-bold").checked = false;
-          }
-          if (neededNode.classList.contains("italic")) {
-            document.querySelector("#checkbox-italic").checked = true;
-          } else {
-            document.querySelector("#checkbox-italic").checked = false;
-          }
-          if (neededNode.classList.contains("text-decoration-underline")) {
-            document.querySelector("#checkbox-underline").checked = true;
-          } else {
-            document.querySelector("#checkbox-underline").checked = false;
-          }
-          if (neededNode.classList.contains("text-decoration-line-through")) {
-            document.querySelector("#checkbox-line-through").checked = true;
-          } else {
-            document.querySelector("#checkbox-line-through").checked = false;
+            let parentNode =
+              selectedNode.nodeType === 3 //3 = Node.TEXT_NODE
+                ? selectedNode.parentNode
+                : selectedNode;
+            if (
+              parentNode.classList.contains("node-text-content") ||
+              parentNode.classList.contains("node-text")
+            ) {
+              this.checkIfNeedsToBeChecked(parentNode);
+            } else {
+              this.checkIfNeedsToBeChecked(parentNode);
+              if (
+                !parentNode.classList.contains("node-text-content") &&
+                $(this.textEl).hasClass("node-text-content")
+              ) {
+                while (!parentNode.classList.contains("node-text-content")) {
+                  parentNode = parentNode.parentElement;
+                  this.checkIfNeedsToBeCheckedForWhile(parentNode);
+                }
+              } else if (
+                !parentNode.classList.contains("node-text") &&
+                $(this.textEl).hasClass("node-text")
+              ) {
+                while (!parentNode.classList.contains("node-text")) {
+                  parentNode = parentNode.parentElement;
+                  this.checkIfNeedsToBeCheckedForWhile(parentNode);
+                }
+              }
+            }
           }
         }
-      }
-    });
+      });
+  }
+  checkIfNeedsToBeChecked(neededNode) {
+    if (neededNode.classList.contains("bold")) {
+      document.querySelector("#checkbox-bold").checked = true;
+    } else {
+      document.querySelector("#checkbox-bold").checked = false;
+    }
+    if (neededNode.classList.contains("italic")) {
+      document.querySelector("#checkbox-italic").checked = true;
+    } else {
+      document.querySelector("#checkbox-italic").checked = false;
+    }
+    if (neededNode.classList.contains("text-decoration-underline")) {
+      document.querySelector("#checkbox-underline").checked = true;
+    } else {
+      document.querySelector("#checkbox-underline").checked = false;
+    }
+    if (neededNode.classList.contains("text-decoration-line-through")) {
+      document.querySelector("#checkbox-line-through").checked = true;
+    } else {
+      document.querySelector("#checkbox-line-through").checked = false;
+    }
+  }
+  checkIfNeedsToBeCheckedForWhile(neededNode) {
+    if (neededNode.classList.contains("bold")) {
+      document.querySelector("#checkbox-bold").checked = true;
+    }
+    if (neededNode.classList.contains("italic")) {
+      document.querySelector("#checkbox-italic").checked = true;
+    }
+    if (neededNode.classList.contains("text-decoration-underline")) {
+      document.querySelector("#checkbox-underline").checked = true;
+    }
+    if (neededNode.classList.contains("text-decoration-line-through")) {
+      document.querySelector("#checkbox-line-through").checked = true;
+    }
   }
   deleteMenu() {
     $(".text-menu").remove();

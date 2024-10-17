@@ -119,6 +119,7 @@ export class Node {
         e.stopPropagation();
       }
     });
+    this.textEl.innerHTML = this.name;
     const allTextElements = $(this.textEl).add(this.contentEls);
     $(allTextElements).on("dblclick", (e) => {
       this.isDblClick = true;
@@ -129,7 +130,11 @@ export class Node {
       ) {
         target = e.target;
       } else {
-        target = $(e.target).closest('.node-text-content');
+        if ($(e.target).closest(".node-text-content") != undefined) {
+          target = $(e.target).closest(".node-text-content");
+        } else {
+          target = $(e.target).closest(".node-text");
+        }
       }
       if ($(".text-menu").length === 0) {
         TextMenu.singleton.appearing(target);
@@ -222,10 +227,6 @@ export class Node {
     for (const key in this.sockets) {
       this.sockets[key].update();
     }
-    if (this.textEl.innerHTML != this.name) {
-      this.textEl.innerHTML = this.name;
-    }
-
     if (this.type != this.ptype) {
       this.el.classList.remove(this.ptype);
       this.ptype = this.type;
