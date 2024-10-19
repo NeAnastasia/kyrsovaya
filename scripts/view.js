@@ -1,76 +1,79 @@
 import { Connection } from "./connection.js";
 import { Connector } from "./connector.js";
-import { Draggable } from "./draggable.js";
 import { MovingConnection } from "./movingConnection.js";
 import { Selection } from "./selection.js";
 import { TextMenu } from "./textMenu.js";
 
 export class View {
   static singleton = new View();
+  #container;
+  #opos;
+  #isMouseDownHappened;
+  #alert;
   constructor() {
     this.el = $("#view-area")[0];
-    this.container = $("#view")[0];
+    this.#container = $("#view")[0];
     this.connectionIsMoving = false;
-    this.isMouseDownHappened = false;
-    this.container.addEventListener("mousedown", this.down.bind(this));
-    window.addEventListener("mouseup", this.up.bind(this));
-    window.addEventListener("mousemove", this.move.bind(this));
-    window.addEventListener("click", this.click.bind(this));
-    this.opos = null;
+    this.#isMouseDownHappened = false;
+    this.#container.addEventListener("mousedown", this.#down.bind(this));
+    window.addEventListener("mouseup", this.#up.bind(this));
+    window.addEventListener("mousemove", this.#move.bind(this));
+    window.addEventListener("click", this.#click.bind(this));
+    this.#opos = null;
     this.pos = [0, 0];
     this.nodes = [];
     this.connections = [];
     window.addEventListener("keydown", (e) => {
       if (e.key === "Delete") {
         for (const node of Selection.singleton.els) {
-          this.removeNode(node);
+          this.#removeNode(node);
         }
         Selection.singleton.clear();
       }
     });
-    this.alert = $(
+    this.#alert = $(
       `<div class="alert alert-danger alert-click" role="alert">
       </div>`
     )[0];
   }
-  down(e) {
+  #down(e) {
     if (!this.connectionIsMoving) {
       e.preventDefault();
       e.stopPropagation();
       Selection.singleton.clear();
       this._sp = [e.pageX, e.pageY];
-      this.opos = [...this.pos];
+      this.#opos = [...this.pos];
     }
   }
-  up(e) {
+  #up(e) {
     if (!this.connectionIsMoving) {
       e.preventDefault();
       e.stopPropagation();
-      this.opos = null;
+      this.#opos = null;
       this._sp = null;
     } else {
-      this.resetAftermathOfMovingConnection();
+      this.#resetAftermathOfMovingConnection();
     }
   }
-  move(e) {
+  #move(e) {
     if (!this.connectionIsMoving) {
       e.preventDefault();
       e.stopPropagation();
-      if (this.opos == null) {
+      if (this.#opos == null) {
         return;
       }
       this.pos = [
-        this.opos[0] + e.pageX - this._sp[0],
-        this.opos[1] + e.pageY - this._sp[1],
+        this.#opos[0] + e.pageX - this._sp[0],
+        this.#opos[1] + e.pageY - this._sp[1],
       ];
       this.update();
     }
   }
-  click(e) {
+  #click(e) {
     if (
       !this.connectionIsMoving &&
-      !this.isMouseDownHappened &&
-      (e.target == this.el || e.target == this.container)
+      !this.#isMouseDownHappened &&
+      (e.target == this.el || e.target == this.#container)
     ) {
       if ($(".text-menu").length !== 0) {
         TextMenu.singleton.deleteMenu();
@@ -79,15 +82,15 @@ export class View {
       Selection.singleton.clear();
       this.removeAlert();
     } else {
-      this.isMouseDownHappened = false;
+      this.#isMouseDownHappened = false;
     }
   }
-  addNode(n) {
-    this.nodes.push(n);
-    this.el.appendChild(n.el);
+  addNode(node) {
+    this.nodes.push(node);
+    this.el.appendChild(node.el);
     window.dispatchEvent(new Event("viewupdate"));
   }
-  removeNode(n) {
+  #removeNode(n) {
     for (const sock of Object.values(n.sockets)) {
       if (sock && sock.destroy) {
         sock.destroy();
@@ -102,45 +105,42 @@ export class View {
       window.dispatchEvent(new Event("viewupdate"));
     }
   }
-  removeConnection(c) {
-    const index = this.connections.indexOf(c);
+  #removeConnection(conn) {
+    const index = this.connections.indexOf(conn);
     if (index == -1) {
       return;
     }
     this.connections.splice(index, 1);
-    c.destroy();
+    conn.destroy();
     window.dispatchEvent(new Event("viewupdate"));
   }
-  addConnection(c) {
-    this.connections.push(c);
+  addConnection(conn) {
+    this.connections.push(conn);
     window.dispatchEvent(new Event("viewupdate"));
-  }
-  preventSelection(event) {
-    event.preventDefault();
   }
   showAlertForConnectingSockPointConnectionToConnectionBySock() {
-    this.isMouseDownHappened = true;
-    this.alert.textContent = "Вы не можете соединять связи";
-    this.showAlert();
+    this.#isMouseDownHappened = true;
+    this.#alert.textContent = "Вы не можете соединять связи";
+    this.#showAlert();
   }
   showAlertForConnectingConnectionToItself() {
-    this.alert.textContent = "Вы не можете присоединить связь к самой себе.";
-    this.showAlert();
+    this.#alert.textContent = "Вы не можете присоединить связь к самой себе.";
+    this.#showAlert();
   }
-  showAlert() {
-    $(this.alert).appendTo(document.body);
+  #showAlert() {
+    $(this.#alert).appendTo(document.body);
     this.connectionIsMoving = false;
   }
   removeAlert() {
     if ($(".alert-danger").length !== 0) {
       $(".alert-danger").remove();
-      this.resetAftermathOfMovingConnection();
+      this.#resetAftermathOfMovingConnection();
     }
   }
   update() {
     this.el.style.transform = `translate(${this.pos[0]}px, ${this.pos[1]}px)`;
   }
-  resetAftermathOfMovingConnection() {
+  #resetAftermathOfMovingConnection() {
     this.connectionIsMoving = false;
     $(".no-select").removeClass("no-select");
     MovingConnection.singleton.currentConnection = null;
@@ -160,7 +160,7 @@ export class View {
     return ret;
   }
   fromJSON(json) {
-    this.clear();
+    this.#clear();
     for (const n of json.nodes) {
       Node.fromJSON(n);
     }
@@ -169,14 +169,14 @@ export class View {
     }
     window.dispatchEvent(new Event("viewupdate"));
   }
-  clear() {
+  #clear() {
     const tr = Object.values(Node.nodes);
     for (const n of tr) {
-      this.removeNode(n);
+      this.#removeNode(n);
     }
     const trc = [...this.connections];
     for (const c of trc) {
-      this.removeConnection(c);
+      this.#removeConnection(c);
     }
     window.dispatchEvent(new Event("viewupdate"));
   }

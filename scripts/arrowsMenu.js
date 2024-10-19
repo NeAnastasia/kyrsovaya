@@ -3,11 +3,12 @@ import { View } from "./view.js";
 
 export class ArrowsMenu {
   static singleton = new ArrowsMenu();
-  constructor(arrowType, isDashed) {
-    this.curArrowType = arrowType;
-    this.isDashed = isDashed;
-    this.arrow = null;
-    this.el =
+  #connection;
+  #el;
+
+  constructor() {
+    this.#connection = null;
+    this.#el =
       $(`<div class="menu d-flex flex-column justify-content-center" id="menu" tabindex="0">
       <div class="d-flex justify-content-center">
 <div class="btn-group">
@@ -93,11 +94,11 @@ export class ArrowsMenu {
     </div>`)[0];
   }
 
-  appearing(arrow, left, top) {
+  appearing(connection, left, top) {
     View.singleton.removeAlert();
-    this.arrow = arrow;
-    $(this.el).appendTo("#view-area")[0];
-    $(this.el).on("blur", (e) => {
+    this.#connection = connection;
+    $(this.#el).appendTo("#view-area")[0];
+    $(this.#el).on("blur", (e) => {
       if (
         e.relatedTarget &&
         (e.relatedTarget ===
@@ -110,7 +111,7 @@ export class ArrowsMenu {
         e.target.addEventListener("blur", (e) => {}, { once: true });
         return;
       }
-      this.deleteMenu();
+      this.#deleteMenu();
     });
     document.getElementById("menu").style["top"] = top + "px";
     document.getElementById("menu").style["left"] = left + "px";
@@ -119,30 +120,30 @@ export class ArrowsMenu {
     document.getElementById("input-cardinal-number-2").value = "";
     document.getElementById("input-cardinal-number-3").value = "";
     if (
-      this.arrow.spanIn.textContent !==
+      this.#connection.spanIn.textContent !==
       document.getElementById("input-cardinal-number-1").value
     ) {
       document.getElementById("input-cardinal-number-1").value =
-        this.arrow.spanIn.textContent;
+        this.#connection.spanIn.textContent;
     }
 
     if (
-      this.arrow.spanCenter.textContent !==
+      this.#connection.spanCenter.textContent !==
       document.getElementById("input-cardinal-number-2").value
     ) {
       document.getElementById("input-cardinal-number-2").value =
-        this.arrow.spanCenter.textContent;
+        this.#connection.spanCenter.textContent;
     }
 
     if (
-      this.arrow.spanOut.textContent !==
+      this.#connection.spanOut.textContent !==
       document.getElementById("input-cardinal-number-3").value
     ) {
       document.getElementById("input-cardinal-number-3").value =
-        this.arrow.spanOut.textContent;
+        this.#connection.spanOut.textContent;
     }
 
-    this.el.focus();
+    this.#el.focus();
 
     $(document.getElementById("menu-arrowhead-end")).click((e) => {
       e.stopPropagation();
@@ -167,7 +168,7 @@ export class ArrowsMenu {
           document.querySelector("#input-cardinal-number-2") &&
         e.relatedTarget !== document.querySelector("#input-cardinal-number-3")
       ) {
-        this.el.focus();
+        this.#el.focus();
       }
     });
 
@@ -193,24 +194,24 @@ export class ArrowsMenu {
           document.querySelector("#input-cardinal-number-2") &&
         e.relatedTarget !== document.querySelector("#input-cardinal-number-3")
       ) {
-        this.deleteMenu();
+        this.#deleteMenu();
       }
     });
 
     $(document.getElementById("input-cardinal-number-1")).on("input", (e) => {
-      this.arrow.spanIn.textContent = $(
+      this.#connection.spanIn.textContent = $(
         document.getElementById("input-cardinal-number-1")
       ).val();
     });
 
     $(document.getElementById("input-cardinal-number-2")).on("input", (e) => {
-      this.arrow.spanCenter.textContent = $(
+      this.#connection.spanCenter.textContent = $(
         document.getElementById("input-cardinal-number-2")
       ).val();
     });
 
     $(document.getElementById("input-cardinal-number-3")).on("input", (e) => {
-      this.arrow.spanOut.textContent = $(
+      this.#connection.spanOut.textContent = $(
         document.getElementById("input-cardinal-number-3")
       ).val();
     });
@@ -222,7 +223,7 @@ export class ArrowsMenu {
           document.querySelector("#input-cardinal-number-1") &&
         e.relatedTarget !== document.querySelector("#input-cardinal-number-3")
       ) {
-        this.deleteMenu();
+        this.#deleteMenu();
       }
     });
 
@@ -233,82 +234,82 @@ export class ArrowsMenu {
           document.querySelector("#input-cardinal-number-1") &&
         e.relatedTarget !== document.querySelector("#input-cardinal-number-2")
       ) {
-        this.deleteMenu();
+        this.#deleteMenu();
       }
     });
 
     $(document.getElementById("delete")).click((e) => {
       e.stopPropagation();
-      this.deleteArrow();
-      this.deleteMenu();
+      this.#deleteArrow();
+      this.#deleteMenu();
     });
 
     $(document.getElementById("reverse")).click((e) => {
       e.stopPropagation();
-      this.arrow.reverseArrowHeads();
+      this.#connection.reverseArrowHeads();
     });
 
     $(document.getElementById("color-input")).on("change", (e) => {
-      this.arrow.changeColor(e.target.value);
+      this.#connection.changeColor(e.target.value);
     });
     this.dropdownMenu.forEach((element) => {
       $(element).on("click", (e) => {
         e.stopPropagation();
         switch (element.id) {
           case "none-end":
-            this.arrow.changeArrowHeadEnd(ArrowType.None);
+            this.#connection.changeArrowHeadEnd(ArrowType.None);
             break;
           case "default-end":
-            this.arrow.changeArrowHeadEnd(ArrowType.DefaultEnd);
+            this.#connection.changeArrowHeadEnd(ArrowType.DefaultEnd);
             break;
           case "hollow-end":
-            this.arrow.changeArrowHeadEnd(ArrowType.HollowEnd);
+            this.#connection.changeArrowHeadEnd(ArrowType.HollowEnd);
             break;
           case "filled-end":
-            this.arrow.changeArrowHeadEnd(ArrowType.FilledEnd);
+            this.#connection.changeArrowHeadEnd(ArrowType.FilledEnd);
             break;
           case "rhombus-hollow-end":
-            this.arrow.changeArrowHeadEnd(ArrowType.RhombusHollow);
+            this.#connection.changeArrowHeadEnd(ArrowType.RhombusHollow);
             break;
           case "rhombus-end":
-            this.arrow.changeArrowHeadEnd(ArrowType.Rhombus);
+            this.#connection.changeArrowHeadEnd(ArrowType.Rhombus);
             break;
           case "none-start":
-            this.arrow.changeArrowHeadStart(ArrowType.None);
+            this.#connection.changeArrowHeadStart(ArrowType.None);
             break;
           case "default-start":
-            this.arrow.changeArrowHeadStart(ArrowType.DefaultStart);
+            this.#connection.changeArrowHeadStart(ArrowType.DefaultStart);
             break;
           case "hollow-start":
-            this.arrow.changeArrowHeadStart(ArrowType.HollowStart);
+            this.#connection.changeArrowHeadStart(ArrowType.HollowStart);
             break;
           case "filled-start":
-            this.arrow.changeArrowHeadStart(ArrowType.FilledStart);
+            this.#connection.changeArrowHeadStart(ArrowType.FilledStart);
             break;
           case "rhombus-hollow-start":
-            this.arrow.changeArrowHeadStart(ArrowType.RhombusHollow);
+            this.#connection.changeArrowHeadStart(ArrowType.RhombusHollow);
             break;
           case "rhombus-start":
-            this.arrow.changeArrowHeadStart(ArrowType.Rhombus);
+            this.#connection.changeArrowHeadStart(ArrowType.Rhombus);
             break;
           case "flat":
-            this.arrow.updateLine(false);
+            this.#connection.updateLine(false);
             break;
           case "dashed":
-            this.arrow.updateLine(true);
+            this.#connection.updateLine(true);
             break;
           default:
-            this.arrow.changeArrowHeadEnd(ArrowType.None);
+            this.#connection.changeArrowHeadEnd(ArrowType.None);
         }
       });
     });
   }
 
-  deleteArrow() {
-    this.arrow.destroy();
-    this.arrow = null;
+  #deleteArrow() {
+    this.#connection.destroy();
+    this.#connection = null;
   }
-  deleteMenu() {
+  #deleteMenu() {
     $(".menu").remove();
   }
 }

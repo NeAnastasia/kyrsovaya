@@ -9,6 +9,12 @@ export class Node {
   static nodes = {};
   #width = 140;
   #height = 140;
+  #ptype;
+  #opos;
+  #pressType;
+  #name;
+  #contentEls;
+  #textEl;
   static deductTemplate(type) {
     switch (type) {
       case "object": {
@@ -33,19 +39,19 @@ export class Node {
     }
     this.isDblClick = false;
     this.type = type;
-    this.ptype = this.type;
+    this.#ptype = this.type;
     Node.nodes[parseInt(id.replace("node-", ""), 10)] = this;
     this.templateName = Node.deductTemplate(this.type);
     this.el = $($(`#${this.templateName}`).html())[0];
-    this.drag = new Draggable(
+    new Draggable(
       this.el,
-      this.onNodePressed.bind(this),
-      this.onNodeReleased.bind(this),
-      this.onNodeMove.bind(this)
+      this.#onNodePressed.bind(this),
+      this.#onNodeReleased.bind(this),
+      this.#onNodeMove.bind(this)
     );
     this.pos = [0, 0];
-    this.opos = null;
-    this.pressType = 0;
+    this.#opos = null;
+    this.#pressType = 0;
 
     this.sockets = {
       up: new Socket(
@@ -110,17 +116,17 @@ export class Node {
       ),
     };
     this.el.classList.add(this.type);
-    this.name = name;
-    this.contentEls = $(this.el).find(".node-text-content");
-    this.textEl = $(this.el).find(".node-text")[0];
-    this.textEl.addEventListener("keydown", (e) => {
+    this.#name = name;
+    this.#contentEls = $(this.el).find(".node-text-content");
+    this.#textEl = $(this.el).find(".node-text")[0];
+    this.#textEl.addEventListener("keydown", (e) => {
       if (e.keyCode == 13) {
         e.preventDefault();
         e.stopPropagation();
       }
     });
-    this.textEl.innerHTML = this.name;
-    const allTextElements = $(this.textEl).add(this.contentEls);
+    this.#textEl.innerHTML = this.#name;
+    const allTextElements = $(this.#textEl).add(this.#contentEls);
     $(allTextElements).on("dblclick", (e) => {
       this.isDblClick = true;
       let target;
@@ -146,17 +152,18 @@ export class Node {
     });
     $(allTextElements).on("focusout", (e) => {
       this.isDblClick = false;
-      this.onRename(e);
+      this.#onRename(e);
       $(e.target).attr("contenteditable", false);
       window.dispatchEvent(new Event("viewupdate"));
     });
-    $(this.textEl).on("input", (e) => {
-      this.onRename(e);
+    $(this.#textEl).on("input", (e) => {
+      this.#onRename(e);
     });
-    window.addEventListener("mousemove", this.#mmraw.bind(this));
+    window.addEventListener("mousemove", this.#mouseMoveRaw.bind(this));
     this.update();
+    this.#addElementRequest();
   }
-  #mmraw(e) {
+  #mouseMoveRaw(e) {
     const coords = [e.pageX, e.pageY];
     const rect = this.el.getBoundingClientRect();
     e.preventDefault();
@@ -175,38 +182,38 @@ export class Node {
   getAcrossXPosition() {
     return this.pos[0] + this.#width;
   }
-  onNodeMove(e, delta) {
-    if (this.pressType == 0) {
+  #onNodeMove(e, delta) {
+    if (this.#pressType == 0) {
       Selection.singleton.moveAll(delta);
     } else {
-      this.#width = Math.max(this.opos[0] + delta[0], 40);
-      this.#height = Math.max(this.opos[1] + delta[1], 40);
-      this.scaleElementRequest();
+      this.#width = Math.max(this.#opos[0] + delta[0], 40);
+      this.#height = Math.max(this.#opos[1] + delta[1], 40);
+      this.#scaleElementRequest();
       this.update();
     }
   }
   moveOn(delta) {
-    this.pos = [this.opos[0] + delta[0], this.opos[1] + delta[1]];
-    this.moveElementRequest();
+    this.pos = [this.#opos[0] + delta[0], this.#opos[1] + delta[1]];
+    this.#moveElementRequest();
     this.update();
   }
   press(e) {
-    this.opos = [...this.pos];
+    this.#opos = [...this.pos];
   }
-  onNodePressed(e) {
+  #onNodePressed(e) {
     const coords = [e.pageX, e.pageY];
     const rect = this.el.getBoundingClientRect();
     if (
       coords[0] > rect.x + rect.width - 20 &&
       coords[1] > rect.y + rect.height - 20
     ) {
-      this.opos = [this.#width, this.#height];
+      this.#opos = [this.#width, this.#height];
       e.preventDefault();
-      this.pressType = 1;
+      this.#pressType = 1;
       this.el.classList.add("selected");
       return;
     }
-    this.pressType = 0;
+    this.#pressType = 0;
     if (!e.shiftKey) {
       Selection.singleton.clear();
     } else {
@@ -216,8 +223,8 @@ export class Node {
     Selection.singleton.pressAll(e);
     this.el.classList.add("selected");
   }
-  onNodeReleased(e) {
-    this.opos = null;
+  #onNodeReleased(e) {
+    this.#opos = null;
     window.dispatchEvent(new Event("viewupdate"));
   }
   update() {
@@ -227,14 +234,14 @@ export class Node {
     for (const key in this.sockets) {
       this.sockets[key].update();
     }
-    if (this.type != this.ptype) {
-      this.el.classList.remove(this.ptype);
-      this.ptype = this.type;
+    if (this.type != this.#ptype) {
+      this.el.classList.remove(this.#ptype);
+      this.#ptype = this.type;
       this.el.classList.add(this.type);
     }
   }
   remove() {
-    this.removeElementRequest();
+    this.#removeElementRequest();
     $(this.el).remove();
   }
   destroy() {
@@ -243,11 +250,11 @@ export class Node {
     }
     window.dispatchEvent(new Event("viewupdate"));
   }
-  onRename(e) {
-    this.name = this.textEl.innerHTML;
+  #onRename(e) {
+    this.#name = this.#textEl.innerHTML;
     this.update();
   }
-  moveElementRequest() {
+  #moveElementRequest() {
     $.ajax({
       url: "/diagram/" + localStorage.getItem("diagramId") + "/operation/move",
       method: "post",
@@ -264,7 +271,7 @@ export class Node {
       },
     });
   }
-  scaleElementRequest() {
+  #scaleElementRequest() {
     $.ajax({
       url: "/diagram/" + localStorage.getItem("diagramId") + "/operation/scale",
       method: "post",
@@ -281,7 +288,7 @@ export class Node {
       },
     });
   }
-  removeElementRequest() {
+  #removeElementRequest() {
     $.ajax({
       url:
         "/diagram/" + localStorage.getItem("diagramId") + "/operation/remove",
@@ -295,7 +302,7 @@ export class Node {
       },
     });
   }
-  addElementRequest() {
+  #addElementRequest() {
     $.ajax({
       url: "/diagram/" + localStorage.getItem("diagramId") + "/operation/", //!!
       method: "post",
@@ -354,14 +361,14 @@ export class Node {
       id: this.id,
       type: this.type,
       pos: this.pos,
-      text: this.name,
+      text: this.#name,
     };
   }
   get textWidth() {
-    return Math.max(this.textEl.clientWidth, 40);
+    return Math.max(this.#textEl.clientWidth, 40);
   }
   get textHeight() {
-    return Math.max(this.textEl.clientHeight, 40);
+    return Math.max(this.#textEl.clientHeight, 40);
   }
   get width() {
     return this.#width;
@@ -463,10 +470,6 @@ class ObjectNode extends Node {
       this.textContent = this.textContentEl.html();
       window.dispatchEvent(new Event("viewupdate"));
     });
-    this.update();
-  }
-
-  onContentEdited(e) {
     this.update();
   }
 

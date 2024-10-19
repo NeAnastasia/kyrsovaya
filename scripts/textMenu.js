@@ -2,8 +2,10 @@ import { View } from "./view.js";
 
 export class TextMenu {
   static singleton = new TextMenu();
+  #el;
+  #textEl;
   constructor() {
-    this.el = $(`<div
+    this.#el = $(`<div
   class="text-menu d-flex flex-column justify-content-center"
   id="text-menu"
   tabindex="0"
@@ -35,19 +37,18 @@ export class TextMenu {
 </div>
   </div>
 </div>`)[0];
-    this.classes = [];
-    this.textEl = null;
+    this.#textEl = null;
   }
   appearing(textEl) {
     View.singleton.removeAlert();
-    this.textEl = textEl;
-    $(this.el).appendTo(document.body);
+    this.#textEl = textEl;
+    $(this.#el).appendTo(document.body);
     document.querySelector("#checkbox-bold").checked = false;
     document.querySelector("#checkbox-italic").checked = false;
     document.querySelector("#checkbox-underline").checked = false;
     document.querySelector("#checkbox-line-through").checked = false;
 
-    this.addEvent();
+    this.#addEvent();
     $(document.getElementById("checkbox-bold")).blur((e) => {
       if (
         e.relatedTarget !== document.querySelector(".text-menu") &&
@@ -181,16 +182,16 @@ export class TextMenu {
     });
   }
   changeObject(textEl) {
-    this.textEl = textEl;
-    this.addEvent();
+    this.#textEl = textEl;
+    this.#addEvent();
   }
-  addEvent() {
-    $(this.textEl)
+  #addEvent() {
+    $(this.#textEl)
       .off("mouseup")
       .on("mouseup", (e) => {
         if (
-          document.activeElement === this.textEl[0] ||
-          document.activeElement === this.textEl
+          document.activeElement === this.#textEl[0] ||
+          document.activeElement === this.#textEl
         ) {
           const selection = window.getSelection();
 
@@ -206,12 +207,12 @@ export class TextMenu {
               parentNode.classList.contains("node-text-content") ||
               parentNode.classList.contains("node-text")
             ) {
-              this.checkIfNeedsToBeChecked(parentNode);
+              this.#checkIfNeedsToBeChecked(parentNode);
             } else {
-              this.checkIfNeedsToBeChecked(parentNode);
+              this.#checkIfNeedsToBeChecked(parentNode);
               if (
                 !parentNode.classList.contains("node-text-content") &&
-                $(this.textEl).hasClass("node-text-content")
+                $(this.#textEl).hasClass("node-text-content")
               ) {
                 while (!parentNode.classList.contains("node-text-content")) {
                   parentNode = parentNode.parentElement;
@@ -219,7 +220,7 @@ export class TextMenu {
                 }
               } else if (
                 !parentNode.classList.contains("node-text") &&
-                $(this.textEl).hasClass("node-text")
+                $(this.#textEl).hasClass("node-text")
               ) {
                 while (!parentNode.classList.contains("node-text")) {
                   parentNode = parentNode.parentElement;
@@ -231,7 +232,7 @@ export class TextMenu {
         }
       });
   }
-  checkIfNeedsToBeChecked(neededNode) {
+  #checkIfNeedsToBeChecked(neededNode) {
     if (neededNode.classList.contains("bold")) {
       document.querySelector("#checkbox-bold").checked = true;
     } else {

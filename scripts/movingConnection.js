@@ -1,5 +1,3 @@
-import { View } from "./view.js";
-
 export class MovingConnection {
   static singleton = new MovingConnection();
   constructor() {

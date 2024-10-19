@@ -5,22 +5,15 @@ export class Selection {
   }
   add(node) {
     this.els.push(node);
-    return this;
   }
   clear() {
     while (this.els.length) {
       this.removeAt(0);
     }
-
-    return this;
   }
   removeAt(index) {
     const node = this.els.splice(index, 1);
     node[0].el.classList.remove("selected");
-    return this;
-  }
-  has(item) {
-    return this.els.indexOf(item) != -1;
   }
   moveAll(delta) {
     for (const el of this.els) {

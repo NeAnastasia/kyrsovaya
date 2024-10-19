@@ -3,19 +3,22 @@ import { Node } from "./node.js";
 export class ContextItem {
   #name;
   #parent;
+  #el;
+  #viewArea;
+  #nameEl;
   constructor(parent, name, templateName) {
     this.#parent = parent;
     this.templateName = templateName;
     this.#name = name;
-    this.el = $(
+    this.#el = $(
       `<div class="context-item"><div class="context-view-area"></div><div class="context-item-name">${
         this.#name
       }</div></div>`
     );
-    this.viewArea = this.el.find("div.context-view-area");
-    this.nameEl = this.el.find("div.context-item.name");
-    this.#parent.container.append(this.el);
-    this.el.on("click", (e) => {
+    this.#viewArea = this.#el.find("div.context-view-area");
+    this.#nameEl = this.#el.find("div.context-item.name");
+    this.#parent.container.append(this.#el);
+    this.#el.on("click", (e) => {
       const pos = [0, 0];
       const r = View.singleton.el.getBoundingClientRect();
       var alert = $(
@@ -32,7 +35,7 @@ export class ContextItem {
           text: "text",
           pos: pos,
         };
-        const n = Node.fromJSON(data);
+        Node.fromJSON(data);
         $(".alert-info").remove();
       });
     });
@@ -43,11 +46,11 @@ export class ContextItem {
   }
   set name(v) {
     this.#name = v;
-    this.nameEl.html(this.#name);
+    this.#nameEl.html(this.#name);
   }
   render() {
     const i = $($(`#${this.templateName}-context`).html());
-    this.viewArea.html(i);
+    this.#viewArea.html(i);
   }
 }
 

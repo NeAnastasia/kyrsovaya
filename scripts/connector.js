@@ -8,6 +8,20 @@ export class Connector {
   constructor() {
     this.currentSocket = null;
   }
+  reconnect(socket) {
+    if (MovingConnection.singleton.currentConnection.outPoint !== null) {
+      this.currentSocket = socket;
+      this.reconnectAssociation(
+        MovingConnection.singleton.currentConnection.outPoint,
+        MovingConnection.singleton.currentConnection.outPoint
+          .connectionParent
+      );
+      MovingConnection.singleton.deleteCurrentConnection();
+    } else {
+      this.#reconnectSockets(this);
+      MovingConnection.singleton.deleteCurrentConnection();
+    }
+  }
   reconnectAssociation(point, targetConnection) {
     const oldConnection = MovingConnection.singleton.currentConnection;
     let conn = new Connection(
@@ -32,9 +46,9 @@ export class Connector {
       conn.unswapArrowHeads();
     }
     targetConnection.connectedConnections.push(conn);
-    this.connect(conn);
+    this.#connect(conn);
   }
-  reconnectSockets(sock) {
+  #reconnectSockets(sock) {
     let conn;
     const oldConnection = MovingConnection.singleton.currentConnection;
     if (this.currentSocket === oldConnection.inSock) {
@@ -72,10 +86,9 @@ export class Connector {
     });
     sock.addConnection(conn);
     conn.update();
-    this.connect(conn);
+    this.#connect(conn);
   }
   connectAssociation(point, targetConnection) {
-    console.log("associated");
     const conn = new Connection(
       this.currentSocket,
       null,
@@ -85,14 +98,14 @@ export class Connector {
       true
     );
     targetConnection.connectedConnections.push(conn);
-    this.connect(conn);
+    this.#connect(conn);
   }
   connectSockets(sock) {
     const conn = new Connection(this.currentSocket, sock);
     sock.addConnection(conn);
-    this.connect(conn);
+    this.#connect(conn);
   }
-  connect(conn) {
+  #connect(conn) {
     this.currentSocket.addConnection(conn);
     View.singleton.connections.push(conn);
     this.currentSocket = null;

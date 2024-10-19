@@ -1,5 +1,8 @@
 import { View } from "./view.js";
 export class Draggable {
+  #mouseDown;
+  #mouseUp;
+  #mouseMove;
   constructor(
     el,
     onMouseDown = () => {},
@@ -7,15 +10,15 @@ export class Draggable {
     onMouseMove = () => {}
   ) {
     this.el = el;
-    window.addEventListener("mousemove", this.move.bind(this));
-    this.el.addEventListener("mousedown", this.down.bind(this));
-    window.addEventListener("mouseup", this.up.bind(this));
+    window.addEventListener("mousemove", this.#move.bind(this));
+    this.el.addEventListener("mousedown", this.#down.bind(this));
+    window.addEventListener("mouseup", this.#up.bind(this));
     this._sp = null;
-    this.md = onMouseDown;
-    this.mu = onMouseUp;
-    this.mm = onMouseMove;
+    this.#mouseDown = onMouseDown;
+    this.#mouseUp = onMouseUp;
+    this.#mouseMove = onMouseMove;
   }
-  down(e) {
+  #down(e) {
     e.stopPropagation();
     if (
       this.sp != null ||
@@ -30,22 +33,22 @@ export class Draggable {
       e.preventDefault();
     }
     this._sp = [e.pageX, e.pageY];
-    this.md(e, this._sp);
+    this.#mouseDown(e, this._sp);
   }
-  up(e) {
+  #up(e) {
     e.stopPropagation();
     if (this._sp == null) {
       return;
     }
     this._sp = null;
-    this.mu(e);
+    this.#mouseUp(e);
   }
-  move(e) {
+  #move(e) {
     e.stopPropagation();
     if (this._sp == null) {
       return;
     }
     const delta = [e.pageX - this._sp[0], e.pageY - this._sp[1]];
-    this.mm(e, delta);
+    this.#mouseMove(e, delta);
   }
 }

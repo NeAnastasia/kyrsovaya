@@ -8,6 +8,15 @@ import { MovingConnection } from "./movingConnection.js";
 
 export class Connection {
   static idCon = 0;
+  #arrowLines
+  #parrowTypeStart;
+  #parrowTypeEnd;
+  #el;
+  #markerELStart;
+  #markerELEnd;
+  #lineClickEls;
+  #inClick;
+  #outClick;
   constructor(
     inSock,
     outSock = null,
@@ -28,15 +37,15 @@ export class Connection {
     this.color = color;
     Connection.idCon++;
     this.isArrowsReversed = false;
-    this.arrowLines = [];
+    this.#arrowLines = [];
     this.connectedConnections = [];
     this.isDashed = isDashed;
     this.inSock = inSock;
     this.outSock = outSock;
     this.outPoint = outPoint;
-    this.parrowTypeStart = arrowTypeStart;
+    this.#parrowTypeStart = arrowTypeStart;
     this.arrowTypeStart = arrowTypeStart;
-    this.parrowTypeEnd = arrowTypeEnd;
+    this.#parrowTypeEnd = arrowTypeEnd;
     this.arrowTypeEnd = arrowTypeEnd;
     this.spanIn = document.createElement("span");
     $(this.spanIn).addClass("cardinal-number");
@@ -50,7 +59,7 @@ export class Connection {
     $(this.spanCenter).addClass("cardinal-number");
     this.spanCenter.textContent = textCenter;
     $(this.spanCenter).appendTo("#view-area")[0];
-    this.el = $(
+    this.#el = $(
       `<svg class="node-connection">
         <defs>
         <marker id="" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">` +
@@ -64,25 +73,25 @@ export class Connection {
       <line class="arrow"> </line>
       </svg>`
     ).appendTo("#view-area")[0];
-    $(this.el).attr("id", this.id);
-    this.lineEls = $(this.el).find("line").not(".arrow");
-    this.markerELStart = $(this.el).find("marker")[0];
-    $(this.markerELStart).attr("id", `arrowhead-${this.id}-start`);
-    this.markerELEnd = $(this.el).find("marker")[1];
-    $(this.markerELEnd).attr("id", `arrowhead-${this.id}-end`);
-    this.lineClickEls = $(this.el).find(".arrow");
-    this.inClick = document.createElementNS(
+    $(this.#el).attr("id", this.id);
+    this.lineEls = $(this.#el).find("line").not(".arrow");
+    this.#markerELStart = $(this.#el).find("marker")[0];
+    $(this.#markerELStart).attr("id", `arrowhead-${this.id}-start`);
+    this.#markerELEnd = $(this.#el).find("marker")[1];
+    $(this.#markerELEnd).attr("id", `arrowhead-${this.id}-end`);
+    this.#lineClickEls = $(this.#el).find(".arrow");
+    this.#inClick = document.createElementNS(
       "http://www.w3.org/2000/svg",
       "circle"
     );
-    $(this.inClick).attr("r", "6").addClass("arrow-edge-click");
-    $(this.inClick).appendTo(this.el)[0];
-    this.outClick = document.createElementNS(
+    $(this.#inClick).attr("r", "6").addClass("arrow-edge-click");
+    $(this.#inClick).appendTo(this.#el)[0];
+    this.#outClick = document.createElementNS(
       "http://www.w3.org/2000/svg",
       "circle"
     );
-    $(this.outClick).attr("r", "6").addClass("arrow-edge-click");
-    $(this.outClick).appendTo(this.el)[0];
+    $(this.#outClick).attr("r", "6").addClass("arrow-edge-click");
+    $(this.#outClick).appendTo(this.#el)[0];
     $(".arrow-edge-click").on("mousedown", (e) => {
       if (!View.singleton.connectionIsMoving) {
         $(".node-text-content, .cardinal-number, .node-text").addClass(
@@ -90,9 +99,9 @@ export class Connection {
         );
         View.singleton.connectionIsMoving = true;
         MovingConnection.singleton.currentConnection = this;
-        if (e.target === this.outClick && this.inSock !== null) {
+        if (e.target === this.#outClick && this.inSock !== null) {
           Connector.singleton.currentSocket = this.inSock;
-        } else if (e.target === this.inClick && this.outSock !== null) {
+        } else if (e.target === this.#inClick && this.outSock !== null) {
           Connector.singleton.currentSocket = this.outSock;
         }
       }
@@ -100,7 +109,7 @@ export class Connection {
     this.update();
   }
   destroy() {
-    $(this.el).remove();
+    $(this.#el).remove();
     $(this.spanIn).remove();
     $(this.spanOut).remove();
     $(this.spanCenter).remove();
@@ -157,13 +166,13 @@ export class Connection {
     }
     this.update();
   }
-  changeColorArrowHead() {
+  #changeColorArrowHead() {
     if (this.arrowTypeEnd !== ArrowType.None) {
       if (
         this.arrowTypeEnd === ArrowType.DefaultStart ||
         this.arrowTypeEnd === ArrowType.DefaultEnd
       ) {
-        $(this.el).find(
+        $(this.#el).find(
           "#arrowhead-" + this.id + "-end polyline"
         )[0].style.stroke = this.color;
       } else if (
@@ -171,11 +180,11 @@ export class Connection {
         this.arrowTypeEnd === ArrowType.FilledEnd ||
         this.arrowTypeEnd === ArrowType.Rhombus
       ) {
-        $(this.el).find(
+        $(this.#el).find(
           "#arrowhead-" + this.id + "-end polygon"
         )[0].style.fill = this.color;
       } else {
-        $(this.el).find(
+        $(this.#el).find(
           "#arrowhead-" + this.id + "-end polygon"
         )[0].style.stroke = this.color;
       }
@@ -185,7 +194,7 @@ export class Connection {
         this.arrowTypeStart === ArrowType.DefaultStart ||
         this.arrowTypeStart === ArrowType.DefaultEnd
       ) {
-        $(this.el).find(
+        $(this.#el).find(
           "#arrowhead-" + this.id + "-start polyline"
         )[0].style.stroke = this.color;
       } else if (
@@ -193,11 +202,11 @@ export class Connection {
         this.arrowTypeStart === ArrowType.FilledEnd ||
         this.arrowTypeStart === ArrowType.Rhombus
       ) {
-        $(this.el).find(
+        $(this.#el).find(
           "#arrowhead-" + this.id + "-start polygon"
         )[0].style.fill = this.color;
       } else {
-        $(this.el).find(
+        $(this.#el).find(
           "#arrowhead-" + this.id + "-start polygon"
         )[0].style.stroke = this.color;
       }
@@ -206,9 +215,9 @@ export class Connection {
   changeColor(color) {
     this.color = color;
     $(this.lineEls).css("stroke", this.color);
-    this.changeColorArrowHead();
+    this.#changeColorArrowHead();
   }
-  swapArrowHeads() {
+  #swapArrowHeads() {
     switch (this.arrowTypeEnd) {
       case ArrowType.DefaultEnd:
         this.arrowTypeEnd = ArrowType.DefaultStart;
@@ -257,8 +266,8 @@ export class Connection {
     }
     this.update();
   }
-  changeLengthOfLineInSakeOfArrowHead() {
-    const line = this.arrowLines[this.arrowLines.length - 1];
+  #changeLengthOfLineInSakeOfArrowHead() {
+    const line = this.#arrowLines[this.#arrowLines.length - 1];
     if ($(line).attr("y1") === $(line).attr("y2")) {
       if ($(line).attr("x1") < $(line).attr("x2")) {
         $(line).attr("x2", parseFloat($(line).attr("x2")) - 20);
@@ -273,53 +282,53 @@ export class Connection {
       }
     }
   }
-  checkIfArrowsNeedToBeChanged() {
-    if (this.arrowTypeEnd != this.parrowTypeEnd) {
-      $(this.el).find("marker")[1].innerHTML = this.arrowTypeEnd;
-      this.parrowTypeEnd = this.arrowTypeEnd;
+  #checkIfArrowsNeedToBeChanged() {
+    if (this.arrowTypeEnd != this.#parrowTypeEnd) {
+      $(this.#el).find("marker")[1].innerHTML = this.arrowTypeEnd;
+      this.#parrowTypeEnd = this.arrowTypeEnd;
     }
-    if (this.arrowTypeStart != this.parrowTypeStart) {
-      $(this.el).find("marker")[0].innerHTML = this.arrowTypeStart;
-      this.parrowTypeStart = this.arrowTypeStart;
+    if (this.arrowTypeStart != this.#parrowTypeStart) {
+      $(this.#el).find("marker")[0].innerHTML = this.arrowTypeStart;
+      this.#parrowTypeStart = this.arrowTypeStart;
     }
     if (this.isArrowsReversed) {
       if (this.arrowTypeEnd != ArrowType.DefaultStart) {
-        $(this.markerELEnd).attr("refX", `10`);
+        $(this.#markerELEnd).attr("refX", `10`);
       } else {
-        $(this.markerELEnd).attr("refX", `0`);
+        $(this.#markerELEnd).attr("refX", `0`);
       }
       if (this.arrowTypeStart == ArrowType.DefaultEnd) {
-        $(this.markerELStart).attr("refX", `10`);
+        $(this.#markerELStart).attr("refX", `10`);
       } else {
-        $(this.markerELStart).attr("refX", `0`);
+        $(this.#markerELStart).attr("refX", `0`);
       }
     } else {
       if (
         this.arrowTypeEnd == ArrowType.DefaultEnd ||
         this.arrowTypeEnd === ArrowType.None
       ) {
-        $(this.markerELEnd).attr("refX", `10`);
+        $(this.#markerELEnd).attr("refX", `10`);
       } else {
         if (this.outPoint !== null) {
-          this.changeLengthOfLineInSakeOfArrowHead();
-          $(this.markerELEnd).attr("refX", `0`);
+          this.#changeLengthOfLineInSakeOfArrowHead();
+          $(this.#markerELEnd).attr("refX", `0`);
         } else {
-          $(this.markerELEnd).attr("refX", `0`);
+          $(this.#markerELEnd).attr("refX", `0`);
         }
       }
       if (this.arrowTypeStart != ArrowType.DefaultStart) {
-        $(this.markerELStart).attr("refX", `10`);
+        $(this.#markerELStart).attr("refX", `10`);
       } else {
-        $(this.markerELStart).attr("refX", `0`);
+        $(this.#markerELStart).attr("refX", `0`);
       }
     }
   }
-  addClickEventToLines() {
-    $(this.lineClickEls).on("mouseup", (e) => {
+  #addClickEventToLines() {
+    $(this.#lineClickEls).on("mouseup", (e) => {
       if (View.singleton.connectionIsMoving) {
         if (
           MovingConnection.singleton.checkIfConnectionIsConnectingToItself(
-            this.lineEls[$(this.lineClickEls).index(e.target)]
+            this.lineEls[$(this.#lineClickEls).index(e.target)]
           )
         ) {
           View.singleton.showAlertForConnectingConnectionToItself();
@@ -351,7 +360,7 @@ export class Connection {
         }
       }
     });
-    $(this.lineClickEls).click((e) => {
+    $(this.#lineClickEls).click((e) => {
       e.stopPropagation();
       if (Connector.singleton.currentSocket !== null) {
         const point = new Point(
@@ -381,8 +390,8 @@ export class Connection {
       }
     });
   }
-  checkIfClickLineNeedsToBeShorter() {
-    let line = this.lineClickEls[this.lineClickEls.length - 1];
+  #checkIfClickLineNeedsToBeShorter() {
+    let line = this.#lineClickEls[this.#lineClickEls.length - 1];
     if ($(line).attr("y1") === $(line).attr("y2")) {
       if ($(line).attr("x1") > $(line).attr("x2")) {
         $(line).attr("x2", parseFloat($(line).attr("x2")) + 7);
@@ -396,7 +405,7 @@ export class Connection {
         $(line).attr("y2", parseFloat($(line).attr("y2")) - 7);
       }
     }
-    line = this.lineClickEls[0];
+    line = this.#lineClickEls[0];
     if ($(line).attr("y1") === $(line).attr("y2")) {
       if ($(line).attr("x1") > $(line).attr("x2")) {
         $(line).attr("x1", parseFloat($(line).attr("x1")) - 7);
@@ -411,42 +420,42 @@ export class Connection {
       }
     }
   }
-  definePosAdditionalElements() {
+  #definePosAdditionalElements() {
     this.spanIn.style.left = this.inSock.getAbsolutePosition()[0] + "px";
     this.spanIn.style.top = this.inSock.getAbsolutePosition()[1] + "px";
-    $(this.inClick).attr("cx", this.inSock.getAbsolutePosition()[0]);
-    $(this.inClick).attr("cy", this.inSock.getAbsolutePosition()[1]);
+    $(this.#inClick).attr("cx", this.inSock.getAbsolutePosition()[0]);
+    $(this.#inClick).attr("cy", this.inSock.getAbsolutePosition()[1]);
     if (this.outSock !== null) {
       this.spanOut.style.left = this.outSock.getAbsolutePosition()[0] + "px";
       this.spanOut.style.top = this.outSock.getAbsolutePosition()[1] + "px";
-      $(this.outClick).attr("cx", this.outSock.getAbsolutePosition()[0]);
-      $(this.outClick).attr("cy", this.outSock.getAbsolutePosition()[1]);
+      $(this.#outClick).attr("cx", this.outSock.getAbsolutePosition()[0]);
+      $(this.#outClick).attr("cy", this.outSock.getAbsolutePosition()[1]);
     } else {
       this.spanOut.style.left = this.outPoint.x + "px";
       this.spanOut.style.top = this.outPoint.y + "px";
-      $(this.outClick).attr("cx", this.outPoint.x);
-      $(this.outClick).attr("cy", this.outPoint.y);
+      $(this.#outClick).attr("cx", this.outPoint.x);
+      $(this.#outClick).attr("cy", this.outPoint.y);
     }
-    if (this.arrowLines.length === 2) {
-      this.spanCenter.style.left = $(this.arrowLines[0]).attr("x2") + "px";
-      this.spanCenter.style.top = $(this.arrowLines[0]).attr("y2") + "px";
+    if (this.#arrowLines.length === 2) {
+      this.spanCenter.style.left = $(this.#arrowLines[0]).attr("x2") + "px";
+      this.spanCenter.style.top = $(this.#arrowLines[0]).attr("y2") + "px";
     } else {
-      const index = Math.floor(this.arrowLines.length / 2);
+      const index = Math.floor(this.#arrowLines.length / 2);
       this.spanCenter.style.left =
-        (parseFloat($(this.arrowLines[index]).attr("x2")) +
-          parseFloat($(this.arrowLines[index]).attr("x1"))) /
+        (parseFloat($(this.#arrowLines[index]).attr("x2")) +
+          parseFloat($(this.#arrowLines[index]).attr("x1"))) /
           2 +
         "px";
       this.spanCenter.style.top =
-        (parseFloat($(this.arrowLines[index]).attr("y2")) +
-          parseFloat($(this.arrowLines[index]).attr("y1"))) /
+        (parseFloat($(this.#arrowLines[index]).attr("y2")) +
+          parseFloat($(this.#arrowLines[index]).attr("y1"))) /
           2 +
         "px";
     }
   }
   update() {
     if (this.outSock !== null) {
-      this.arrowLines = ArrowsCreatingPath.singleton.creatingPathForSockets(
+      this.#arrowLines = ArrowsCreatingPath.singleton.creatingPathForSockets(
         this.inSock,
         this.outSock,
         this.isDashed,
@@ -454,7 +463,7 @@ export class Connection {
       );
     } else {
       let isHorizontal = this.outPoint.findNewPositionReturnIsHorizontal();
-      this.arrowLines =
+      this.#arrowLines =
         ArrowsCreatingPath.singleton.creatingPathForSocketAndPoint(
           this.inSock,
           this.outPoint,
@@ -464,19 +473,19 @@ export class Connection {
         );
     }
     if (
-      $(this.arrowLines[0]).attr("marker-start") ===
+      $(this.#arrowLines[0]).attr("marker-start") ===
       `url(#arrowhead-${this.id}-end)`
     ) {
       this.isArrowsReversed = true;
-      this.swapArrowHeads();
+      this.#swapArrowHeads();
     }
-    this.definePosAdditionalElements();
+    this.#definePosAdditionalElements();
     $(this.lineEls).remove();
-    $(this.lineClickEls).remove();
-    this.checkIfArrowsNeedToBeChanged();
-    for (var i = 0; i < this.arrowLines.length; i++) {
-      $(this.el).append(this.arrowLines[i]);
-      const clickLine = $(this.arrowLines[i])
+    $(this.#lineClickEls).remove();
+    this.#checkIfArrowsNeedToBeChanged();
+    for (var i = 0; i < this.#arrowLines.length; i++) {
+      $(this.#el).append(this.#arrowLines[i]);
+      const clickLine = $(this.#arrowLines[i])
         .clone()
         .addClass("arrow")
         .css("stroke", this.color);
@@ -486,19 +495,19 @@ export class Connection {
       if (clickLine.attr("marker-end") !== undefined) {
         clickLine.attr("marker-end", "");
       }
-      $(this.el).append(clickLine);
+      $(this.#el).append(clickLine);
     }
-    this.lineClickEls = $(this.el).find(".arrow");
-    this.lineEls = $(this.el).find("line").not(".arrow");
-    this.checkIfClickLineNeedsToBeShorter();
+    this.#lineClickEls = $(this.#el).find(".arrow");
+    this.lineEls = $(this.#el).find("line").not(".arrow");
+    this.#checkIfClickLineNeedsToBeShorter();
     this.changeColor(this.color);
-    this.addClickEventToLines();
+    this.#addClickEventToLines();
     if (this.connectedConnections.length !== 0) {
       $(this.connectedConnections).each((i, conn) => {
         conn.update();
       });
     }
-    this.arrowLines = [];
+    this.#arrowLines = [];
   }
   toJSON() {
     const toJSONClass = {
