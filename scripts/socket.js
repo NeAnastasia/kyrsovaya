@@ -27,7 +27,7 @@ export class Socket {
     });
     $(this.#el).on("mouseup", (e) => {
       if (View.singleton.connectionIsMoving) {
-        Connector.singleton.reconnect(this, );
+        Connector.singleton.reconnect(this);
       }
     });
   }

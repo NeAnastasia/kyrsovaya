@@ -114,6 +114,7 @@ export class TextMenu {
         if (e.target.checked) {
           if (selectionString === neededNode.textContent) {
             neededNode.classList.add(e.target.value);
+            selection.removeAllRanges();
           } else {
             const selectedText = range.extractContents();
             const span = document.createElement("span");
@@ -133,11 +134,9 @@ export class TextMenu {
             }
           } else {
             let targetClassList = neededNode.classList;
-            let textBeforeSpan = document.createElement("span");
             $(targetClassList).each((i, classEl) => {
               textBeforeSpan.classList.add(classEl);
             });
-            let textAfterSpan = document.createElement("span");
             $(targetClassList).each((i, classEl) => {
               textAfterSpan.classList.add(classEl);
             });
@@ -148,6 +147,8 @@ export class TextMenu {
             }
             targetClassList.remove(e.target.value);
 
+            let textBeforeSpan = document.createElement("span");
+            let textAfterSpan = document.createElement("span");
             let wrapper;
             if (targetClassList.length !== 0) {
               wrapper = document.createElement("span");

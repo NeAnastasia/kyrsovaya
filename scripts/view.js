@@ -141,8 +141,8 @@ export class View {
     this.el.style.transform = `translate(${this.pos[0]}px, ${this.pos[1]}px)`;
   }
   #resetAftermathOfMovingConnection() {
-    this.connectionIsMoving = false;
     $(".no-select").removeClass("no-select");
+    this.connectionIsMoving = false;
     MovingConnection.singleton.currentConnection = null;
     Connector.singleton.currentSocket = null;
   }
@@ -164,7 +164,16 @@ export class View {
     for (const n of json.nodes) {
       Node.fromJSON(n);
     }
-    for (const conn of json.connections) {
+    const conns = json.connections.sort((a, b) => {
+      if (a.outPoint === null && b.outPoint !== null) {
+        return -1;
+      }
+      if (a.outPoint !== null && b.outPoint === null) {
+        return 1;
+      }
+      return 0;
+    });
+    for (const conn of conns) {
       Connection.fromJSON(conn);
     }
     window.dispatchEvent(new Event("viewupdate"));

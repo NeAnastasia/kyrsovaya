@@ -479,10 +479,10 @@ export class Connection {
       this.isArrowsReversed = true;
       this.#swapArrowHeads();
     }
+    this.#checkIfArrowsNeedToBeChanged();
     this.#definePosAdditionalElements();
     $(this.lineEls).remove();
     $(this.#lineClickEls).remove();
-    this.#checkIfArrowsNeedToBeChanged();
     for (var i = 0; i < this.#arrowLines.length; i++) {
       $(this.#el).append(this.#arrowLines[i]);
       const clickLine = $(this.#arrowLines[i])
@@ -540,6 +540,7 @@ export class Connection {
   }
   static fromJSON(json) {
     const n1 = getNode(parseFloat(json.inSock.id.replace("node-", ""), 10));
+    const inSock = n1.sockets[json.inSock.type];
     var outSock = null;
     var point = null;
     var foundConnection = null;
@@ -554,7 +555,6 @@ export class Connection {
       );
       point = new Point(json.outPoint.x, json.outPoint.y, foundConnection);
     }
-    const inSock = n1.sockets[json.inSock.type];
     const conn = new Connection(
       inSock,
       outSock,

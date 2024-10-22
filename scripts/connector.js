@@ -84,8 +84,8 @@ export class Connector {
     $(conn.connectedConnections).each((i, connectedConn) => {
       connectedConn.outPoint.connectionParent = conn;
     });
-    sock.addConnection(conn);
     conn.update();
+    sock.addConnection(conn);
     this.#connect(conn);
   }
   connectAssociation(point, targetConnection) {
