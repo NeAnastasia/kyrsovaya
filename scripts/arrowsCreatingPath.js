@@ -41,10 +41,10 @@ export class ArrowsCreatingPath {
   }
   creatingPathForSocketAndPoint(inSock, point, isDashed, id, isHorizontal) {
     this.#isDashed = isDashed;
-    const inSockPos = inSock.getAbsolutePosition();
-    const inSockParent = inSock.parent;
     const pointX = point.x;
     const pointY = point.y;
+    const inSockPos = inSock.getAbsolutePosition();
+    const inSockParent = inSock.parent;
     this.#arrowLines = [];
 
     if (inSock.isUp()) {

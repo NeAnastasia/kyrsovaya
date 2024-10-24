@@ -18,7 +18,7 @@ export class Connector {
       );
       MovingConnection.singleton.deleteCurrentConnection();
     } else {
-      this.#reconnectSockets(this);
+      this.#reconnectSockets(socket);
       MovingConnection.singleton.deleteCurrentConnection();
     }
   }
