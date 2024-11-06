@@ -1,5 +1,7 @@
 import { View } from "./view.js";
 import { Node } from "./node.js";
+import { Point } from "./point.js";
+
 export class ContextItem {
   #name;
   #parent;
@@ -19,7 +21,7 @@ export class ContextItem {
     this.#nameEl = this.#el.find("div.context-item.name");
     this.#parent.container.append(this.#el);
     this.#el.on("click", (e) => {
-      const pos = [0, 0];
+      const position = new Point(0, 0);
       const r = View.singleton.el.getBoundingClientRect();
       var alert = $(
         `<div class="alert alert-info alert-click" role="alert">
@@ -28,12 +30,11 @@ export class ContextItem {
       )[0];
       $(alert).appendTo(document.body);
       $("#view").one("click", (e) => {
-        pos[0] = e.pageX - r.left;
-        pos[1] = e.pageY - r.top;
+        position.set(e.pageX - r.left, e.pageY - r.top);
         const data = {
           type: ContextMenu.list[this.#name],
           text: "text",
-          pos: pos,
+          position: position,
         };
         Node.fromJSON(data);
         $(".alert-info").remove();

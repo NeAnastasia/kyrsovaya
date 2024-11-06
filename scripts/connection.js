@@ -3,12 +3,13 @@ import { ArrowsMenu } from "./arrowsMenu.js";
 import { Connector } from "./connector.js";
 import { View } from "./view.js";
 import { ArrowsCreatingPath } from "./arrowsCreatingPath.js";
-import { Point } from "./point.js";
+import { Point, ConnectingPoint } from "./point.js";
 import { MovingConnection } from "./movingConnection.js";
+import { NodeSocket } from "./socket.js";
 
 export class Connection {
   static idCon = 0;
-  #arrowLines
+  #arrowLines;
   #parrowTypeStart;
   #parrowTypeEnd;
   #el;
@@ -269,13 +270,13 @@ export class Connection {
   #changeLengthOfLineInSakeOfArrowHead() {
     const line = this.#arrowLines[this.#arrowLines.length - 1];
     if ($(line).attr("y1") === $(line).attr("y2")) {
-      if ($(line).attr("x1") < $(line).attr("x2")) {
+      if (parseFloat($(line).attr("x1")) < parseFloat($(line).attr("x2"))) {
         $(line).attr("x2", parseFloat($(line).attr("x2")) - 20);
       } else {
         $(line).attr("x2", parseFloat($(line).attr("x2")) + 20);
       }
     } else {
-      if ($(line).attr("y1") < $(line).attr("y2")) {
+      if (parseFloat($(line).attr("y1")) < parseFloat($(line).attr("y2"))) {
         $(line).attr("y2", parseFloat($(line).attr("y2")) - 20);
       } else {
         $(line).attr("y2", parseFloat($(line).attr("y2")) + 20);
@@ -342,9 +343,9 @@ export class Connection {
             View.singleton.showAlertForConnectingSockPointConnectionToConnectionBySock();
             MovingConnection.singleton.currentConnection = null;
           } else {
-            const point = new Point(
-              e.pageX - View.singleton.pos[0],
-              e.pageY - View.singleton.pos[1],
+            const point = new ConnectingPoint(
+              e.pageX - View.singleton.position.x,
+              e.pageY - View.singleton.position.y,
               this
             );
             point.findNewPositionReturnIsHorizontal();
@@ -363,9 +364,9 @@ export class Connection {
     $(this.#lineClickEls).click((e) => {
       e.stopPropagation();
       if (Connector.singleton.currentSocket !== null) {
-        const point = new Point(
-          e.pageX - View.singleton.pos[0],
-          e.pageY - View.singleton.pos[1],
+        const point = new ConnectingPoint(
+          e.pageX - View.singleton.position.x,
+          e.pageY - View.singleton.position.y,
           this
         );
         Connector.singleton.connectAssociation(point, this);
@@ -421,15 +422,30 @@ export class Connection {
     }
   }
   #definePosAdditionalElements() {
-    this.spanIn.style.left = this.inSock.getAbsolutePosition()[0] + "px";
-    this.spanIn.style.top = this.inSock.getAbsolutePosition()[1] + "px";
-    $(this.#inClick).attr("cx", this.inSock.getAbsolutePosition()[0]);
-    $(this.#inClick).attr("cy", this.inSock.getAbsolutePosition()[1]);
+    if (this.inSock instanceof NodeSocket) {
+      this.spanIn.style.left = this.inSock.getAbsolutePosition().x + "px";
+      this.spanIn.style.top = this.inSock.getAbsolutePosition().y + "px";
+      $(this.#inClick).attr("cx", this.inSock.getAbsolutePosition().x);
+      $(this.#inClick).attr("cy", this.inSock.getAbsolutePosition().y);
+    } else {
+      this.spanIn.style.left = this.inSock.position.x + "px";
+      this.spanIn.style.top = this.inSock.position.y + "px";
+      $(this.#inClick).attr("cx", this.inSock.position.x);
+      $(this.#inClick).attr("cy", this.inSock.position.y);
+    }
+
     if (this.outSock !== null) {
-      this.spanOut.style.left = this.outSock.getAbsolutePosition()[0] + "px";
-      this.spanOut.style.top = this.outSock.getAbsolutePosition()[1] + "px";
-      $(this.#outClick).attr("cx", this.outSock.getAbsolutePosition()[0]);
-      $(this.#outClick).attr("cy", this.outSock.getAbsolutePosition()[1]);
+      if (this.outSock instanceof NodeSocket) {
+        this.spanOut.style.left = this.outSock.getAbsolutePosition().x + "px";
+        this.spanOut.style.top = this.outSock.getAbsolutePosition().y + "px";
+        $(this.#outClick).attr("cx", this.outSock.getAbsolutePosition().x);
+        $(this.#outClick).attr("cy", this.outSock.getAbsolutePosition().y);
+      } else {
+        this.spanOut.style.left = this.outSock.position.x + "px";
+        this.spanOut.style.top = this.outSock.position.y + "px";
+        $(this.#outClick).attr("cx", this.outSock.position.x);
+        $(this.#outClick).attr("cy", this.outSock.position.y);
+      }
     } else {
       this.spanOut.style.left = this.outPoint.x + "px";
       this.spanOut.style.top = this.outPoint.y + "px";
@@ -532,7 +548,7 @@ export class Connection {
     } else {
       toJSONClass.outSock = null;
       toJSONClass.outPoint = {
-        pos: [this.outPoint.x, this.outPoint.y],
+        position: { x: this.outPoint.x, y: this.outPoint.y },
         parentId: [this.outPoint.connectionParent.id],
       };
     }
@@ -553,7 +569,11 @@ export class Connection {
       foundConnection = View.singleton.connections.find(
         (connection) => connection.id === targetId
       );
-      point = new Point(json.outPoint.x, json.outPoint.y, foundConnection);
+      point = new ConnectingPoint(
+        json.outPoint.x,
+        json.outPoint.y,
+        foundConnection
+      );
     }
     const conn = new Connection(
       inSock,

@@ -24,7 +24,7 @@ $(document).ready(function (e) {
       {
         id: "node-0",
         type: "class",
-        pos: [504, 350],
+        position: { x: 504, y: 350 },
         text: "test1",
         content1: "+ 2dx",
         content2: "+ ",
@@ -32,7 +32,7 @@ $(document).ready(function (e) {
       {
         id: "node-1",
         type: "rhombus",
-        pos: [605.5, 90],
+        position: { x: 605.5, y: 90 },
         text: "text",
       },
     ],

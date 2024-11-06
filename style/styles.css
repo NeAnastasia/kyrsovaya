@@ -162,6 +162,14 @@ svg.node-connection > path {
   bottom: 0;
 }
 
+.node-connection-socket.freeone:hover {
+  opacity: 1;
+}
+
+.node-connection-socket.freeone:hover {
+  opacity: 1;
+}
+
 .menu {
   background-color: rgb(224, 224, 224);
   position: absolute;
@@ -271,11 +279,6 @@ svg.node-connection > path {
 .cardinal-number {
   position: absolute;
 }
-
-/* .no-select::selection {
-  background: transparent;
-  color: inherit;
-} */
 
 .no-select {
   -webkit-touch-callout: none;

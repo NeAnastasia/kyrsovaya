@@ -13,8 +13,7 @@ export class Connector {
       this.currentSocket = socket;
       this.reconnectAssociation(
         MovingConnection.singleton.currentConnection.outPoint,
-        MovingConnection.singleton.currentConnection.outPoint
-          .connectionParent
+        MovingConnection.singleton.currentConnection.outPoint.connectionParent
       );
       MovingConnection.singleton.deleteCurrentConnection();
     } else {
@@ -80,6 +79,9 @@ export class Connector {
         oldConnection.color
       );
     }
+    if (oldConnection.isArrowsReversed) {
+      conn.unswapArrowHeads();
+    }
     conn.connectedConnections = oldConnection.connectedConnections;
     $(conn.connectedConnections).each((i, connectedConn) => {
       connectedConn.outPoint.connectionParent = conn;
@@ -109,5 +111,7 @@ export class Connector {
     this.currentSocket.addConnection(conn);
     View.singleton.connections.push(conn);
     this.currentSocket = null;
+    const selection = window.getSelection();
+    selection.removeAllRanges();
   }
 }

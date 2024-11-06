@@ -1,7 +1,16 @@
 export class Point {
-  constructor(x, y, connectionParent) {
+  constructor(x, y) {
+    this.set(x, y);
+  }
+  set(x, y) {
     this.x = x;
     this.y = y;
+  }
+}
+
+export class ConnectingPoint extends Point {
+  constructor(x, y, connectionParent) {
+    super(x, y);
     this.connectionParent = connectionParent;
   }
   findNewPositionReturnIsHorizontal() {
@@ -49,8 +58,7 @@ export class Point {
         closestLine = line;
       }
     });
-    this.x = closestPoint.x;
-    this.y = closestPoint.y;
+    this.set(closestPoint.x, closestPoint.y)
     return $(closestLine).attr("y1") === $(closestLine).attr("y2");
   }
 }

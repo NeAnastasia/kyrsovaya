@@ -3,6 +3,8 @@ import { Connector } from "./connector.js";
 import { MovingConnection } from "./movingConnection.js";
 import { Selection } from "./selection.js";
 import { TextMenu } from "./textMenu.js";
+import { FreeSocket } from "./socket.js";
+import { Point } from "./point.js";
 
 export class View {
   static singleton = new View();
@@ -20,8 +22,9 @@ export class View {
     window.addEventListener("mousemove", this.#move.bind(this));
     window.addEventListener("click", this.#click.bind(this));
     this.#opos = null;
-    this.pos = [0, 0];
+    this.position = new Point(0, 0);
     this.nodes = [];
+    this.freeSockets = [];
     this.connections = [];
     window.addEventListener("keydown", (e) => {
       if (e.key === "Delete") {
@@ -42,7 +45,7 @@ export class View {
       e.stopPropagation();
       Selection.singleton.clear();
       this._sp = [e.pageX, e.pageY];
-      this.#opos = [...this.pos];
+      this.#opos = new Point(this.position.x, this.position.y);
     }
   }
   #up(e) {
@@ -52,6 +55,9 @@ export class View {
       this.#opos = null;
       this._sp = null;
     } else {
+      Connector.singleton.reconnect(
+        new FreeSocket(new Point(e.pageX, e.pageY))
+      );
       this.#resetAftermathOfMovingConnection();
     }
   }
@@ -62,10 +68,10 @@ export class View {
       if (this.#opos == null) {
         return;
       }
-      this.pos = [
-        this.#opos[0] + e.pageX - this._sp[0],
-        this.#opos[1] + e.pageY - this._sp[1],
-      ];
+      this.position.set(
+        this.#opos.x + e.pageX - this._sp[0],
+        this.#opos.y + e.pageY - this._sp[1]
+      );
       this.update();
     }
   }
@@ -75,6 +81,14 @@ export class View {
       !this.#isMouseDownHappened &&
       (e.target == this.el || e.target == this.#container)
     ) {
+      if (Connector.singleton.currentSocket !== null) {
+        const socket = new FreeSocket(new Point(e.pageX, e.pageY));
+        Connector.singleton.connectSockets(socket);
+      }
+      const selection = window.getSelection();
+      if (selection.rangeCount > 0) {
+        selection.removeAllRanges();
+      }
       if ($(".text-menu").length !== 0) {
         TextMenu.singleton.deleteMenu();
       }
@@ -118,6 +132,16 @@ export class View {
     this.connections.push(conn);
     window.dispatchEvent(new Event("viewupdate"));
   }
+  addFreeSocket(sock) {
+    this.freeSockets.push(sock);
+    window.dispatchEvent(new Event("viewupdate"));
+  }
+  removeFreeSocket(sock) {
+    const index = this.freeSockets.indexOf(sock);
+    if (index > -1) {
+      this.freeSockets.splice(index, 1);
+    }
+  }
   showAlertForConnectingSockPointConnectionToConnectionBySock() {
     this.#isMouseDownHappened = true;
     this.#alert.textContent = "Вы не можете соединять связи";
@@ -138,7 +162,7 @@ export class View {
     }
   }
   update() {
-    this.el.style.transform = `translate(${this.pos[0]}px, ${this.pos[1]}px)`;
+    this.el.style.transform = `translate(${this.position.x}px, ${this.position.y}px)`;
   }
   #resetAftermathOfMovingConnection() {
     $(".no-select").removeClass("no-select");

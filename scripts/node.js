@@ -1,8 +1,11 @@
 import { Draggable } from "./draggable.js";
-import { Socket } from "./socket.js";
+import { NodeSocket } from "./socket.js";
 import { Selection } from "./selection.js";
 import { View } from "./view.js";
 import { TextMenu } from "./textMenu.js";
+import { NodeType } from "./enum/NodeType.js";
+import { SocketType } from "./enum/SocketType.js";
+import { Point } from "./point.js";
 
 export class Node {
   static idC = 0;
@@ -17,10 +20,10 @@ export class Node {
   #textEl;
   static deductTemplate(type) {
     switch (type) {
-      case "object": {
+      case NodeType.Object: {
         return "object-node-template";
       }
-      case "class": {
+      case NodeType.Class: {
         return "class-node-template";
       }
       default: {
@@ -28,7 +31,7 @@ export class Node {
       }
     }
   }
-  constructor(name = "", type = "default", id = "") {
+  constructor(name = "", type = NodeType.Default, id = "") {
     if (id === "") {
       this.id = "node-" + Node.idC;
       Node.idC++;
@@ -49,70 +52,70 @@ export class Node {
       this.#onNodeReleased.bind(this),
       this.#onNodeMove.bind(this)
     );
-    this.pos = [0, 0];
+    this.position = new Point(0, 0);
     this.#opos = null;
     this.#pressType = 0;
 
     this.sockets = {
-      up: new Socket(
+      up: new NodeSocket(
         $(this.el).find(".node-connection-socket.up")[0],
         this,
-        "up"
+        SocketType.Up
       ),
-      upright: new Socket(
+      upright: new NodeSocket(
         $(this.el).find(".node-connection-socket.upright")[0],
         this,
-        "upright"
+        SocketType.Upright
       ),
-      upleft: new Socket(
+      upleft: new NodeSocket(
         $(this.el).find(".node-connection-socket.upleft")[0],
         this,
-        "upleft"
+        SocketType.Upleft
       ),
-      left: new Socket(
+      left: new NodeSocket(
         $(this.el).find(".node-connection-socket.left")[0],
         this,
-        "left"
+        SocketType.Left
       ),
-      leftup: new Socket(
+      leftup: new NodeSocket(
         $(this.el).find(".node-connection-socket.leftup")[0],
         this,
-        "leftup"
+        SocketType.Leftup
       ),
-      leftdown: new Socket(
+      leftdown: new NodeSocket(
         $(this.el).find(".node-connection-socket.leftdown")[0],
         this,
-        "leftdown"
+        SocketType.Leftdown
       ),
-      down: new Socket(
+      down: new NodeSocket(
         $(this.el).find(".node-connection-socket.down")[0],
         this,
-        "down"
+        SocketType.Down
       ),
-      downright: new Socket(
+      downright: new NodeSocket(
         $(this.el).find(".node-connection-socket.downright")[0],
         this,
-        "downright"
+        SocketType.Downright
       ),
-      downleft: new Socket(
+      downleft: new NodeSocket(
         $(this.el).find(".node-connection-socket.downleft")[0],
         this,
-        "downleft"
+        SocketType.Downleft
       ),
-      right: new Socket(
+      right: new NodeSocket(
         $(this.el).find(".node-connection-socket.right")[0],
         this,
-        "right"
+        SocketType.Right
       ),
-      rightup: new Socket(
+      rightup: new NodeSocket(
         $(this.el).find(".node-connection-socket.rightup")[0],
         this,
-        "rightup"
+        SocketType.Rightup
       ),
-      rightdown: new Socket(
+      rightdown: new NodeSocket(
         $(this.el).find(".node-connection-socket.rightdown")[0],
         this,
-        "rightdown"
+        SocketType.Rightdown
       ),
     };
     this.el.classList.add(this.type);
@@ -177,28 +180,28 @@ export class Node {
     }
   }
   getAcrossYPosition() {
-    return this.pos[1] + this.#height;
+    return this.position.y + this.#height;
   }
   getAcrossXPosition() {
-    return this.pos[0] + this.#width;
+    return this.position.x + this.#width;
   }
   #onNodeMove(e, delta) {
     if (this.#pressType == 0) {
       Selection.singleton.moveAll(delta);
     } else {
-      this.#width = Math.max(this.#opos[0] + delta[0], 40);
-      this.#height = Math.max(this.#opos[1] + delta[1], 40);
+      this.#width = Math.max(this.#opos.x + delta[0], 40);
+      this.#height = Math.max(this.#opos.y + delta[1], 40);
       this.#scaleElementRequest();
       this.update();
     }
   }
   moveOn(delta) {
-    this.pos = [this.#opos[0] + delta[0], this.#opos[1] + delta[1]];
-    this.#moveElementRequest();
+    this.position.set(this.#opos.x + delta[0], this.#opos.y + delta[1]);
+    // this.#moveElementRequest();
     this.update();
   }
   press(e) {
-    this.#opos = [...this.pos];
+    this.#opos = new Point(this.position.x, this.position.y);
   }
   #onNodePressed(e) {
     const coords = [e.pageX, e.pageY];
@@ -207,7 +210,7 @@ export class Node {
       coords[0] > rect.x + rect.width - 20 &&
       coords[1] > rect.y + rect.height - 20
     ) {
-      this.#opos = [this.#width, this.#height];
+      this.#opos = new Point(this.#width, this.#height);
       e.preventDefault();
       this.#pressType = 1;
       this.el.classList.add("selected");
@@ -228,7 +231,7 @@ export class Node {
     window.dispatchEvent(new Event("viewupdate"));
   }
   update() {
-    this.el.style.transform = `translate(${this.pos[0]}px, ${this.pos[1]}px)`;
+    this.el.style.transform = `translate(${this.position.x}px, ${this.position.y}px)`;
     this.el.style.width = `${this.#width}px`;
     this.el.style.height = `${this.#height}px`;
     for (const key in this.sockets) {
@@ -262,8 +265,8 @@ export class Node {
       data: {
         elementId: this.id,
         position: {
-          x: this.pos[0],
-          y: this.pos[1],
+          x: this.position.x,
+          y: this.position.y,
         },
       },
       success: function () {
@@ -314,25 +317,25 @@ export class Node {
     });
   }
   static fromJSON(json) {
-    const tname = json.type || "default";
+    const tname = json.type || NodeType.Default;
     let node;
     switch (tname) {
-      case "default":
+      case NodeType.Default:
         {
           node = new RectNode(json.text, json.type, json.id);
         }
         break;
-      case "rhombus":
+      case NodeType.Rhombus:
         {
           node = new RhombusNode(json.text, json.type, json.id);
         }
         break;
-      case "object":
+      case NodeType.Object:
         {
           node = new ObjectNode(json.text, json.type, json.id, json.content1);
         }
         break;
-      case "class":
+      case NodeType.Class:
         {
           node = new ClassNode(
             json.text,
@@ -351,7 +354,7 @@ export class Node {
         break;
     }
 
-    node.pos = [...json.pos];
+    node.position = new Point(json.position.x, json.position.y);
     View.singleton.addNode(node);
     node.update();
     return node;
@@ -360,7 +363,7 @@ export class Node {
     return {
       id: this.id,
       type: this.type,
-      pos: this.pos,
+      position: this.position,
       text: this.#name,
     };
   }
