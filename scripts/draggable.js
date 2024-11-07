@@ -1,4 +1,6 @@
 import { View } from "./view.js";
+import { Point } from "./point.js";
+
 export class Draggable {
   #mouseDown;
   #mouseUp;
@@ -32,7 +34,7 @@ export class Draggable {
     if (!View.singleton.nodes.find((node) => node.el === this.el).isDblClick) {
       e.preventDefault();
     }
-    this._sp = [e.pageX, e.pageY];
+    this._sp = new Point(e.pageX, e.pageY);
     this.#mouseDown(e, this._sp);
   }
   #up(e) {
@@ -48,7 +50,7 @@ export class Draggable {
     if (this._sp == null) {
       return;
     }
-    const delta = [e.pageX - this._sp[0], e.pageY - this._sp[1]];
+    const delta = new Point(e.pageX - this._sp.x, e.pageY - this._sp.y);
     this.#mouseMove(e, delta);
   }
 }

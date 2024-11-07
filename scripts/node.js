@@ -17,7 +17,7 @@ export class Node {
   #pressType;
   #name;
   #contentEls;
-  #textEl;
+  #label;
   static deductTemplate(type) {
     switch (type) {
       case NodeType.Object: {
@@ -121,15 +121,15 @@ export class Node {
     this.el.classList.add(this.type);
     this.#name = name;
     this.#contentEls = $(this.el).find(".node-text-content");
-    this.#textEl = $(this.el).find(".node-text")[0];
-    this.#textEl.addEventListener("keydown", (e) => {
+    this.#label = $(this.el).find(".node-text")[0];
+    this.#label.addEventListener("keydown", (e) => {
       if (e.keyCode == 13) {
         e.preventDefault();
         e.stopPropagation();
       }
     });
-    this.#textEl.innerHTML = this.#name;
-    const allTextElements = $(this.#textEl).add(this.#contentEls);
+    this.#label.innerHTML = this.#name;
+    const allTextElements = $(this.#label).add(this.#contentEls);
     $(allTextElements).on("dblclick", (e) => {
       this.isDblClick = true;
       let target;
@@ -159,7 +159,7 @@ export class Node {
       $(e.target).attr("contenteditable", false);
       window.dispatchEvent(new Event("viewupdate"));
     });
-    $(this.#textEl).on("input", (e) => {
+    $(this.#label).on("input", (e) => {
       this.#onRename(e);
     });
     window.addEventListener("mousemove", this.#mouseMoveRaw.bind(this));
@@ -167,12 +167,12 @@ export class Node {
     this.#addElementRequest();
   }
   #mouseMoveRaw(e) {
-    const coords = [e.pageX, e.pageY];
+    const coords = new Point(e.pageX, e.pageY);
     const rect = this.el.getBoundingClientRect();
     e.preventDefault();
     if (
-      coords[0] > rect.x + rect.width - 20 &&
-      coords[1] > rect.y + rect.height - 20
+      coords.x > rect.x + rect.width - 20 &&
+      coords.y > rect.y + rect.height - 20
     ) {
       this.el.style.cursor = "se-resize";
     } else {
@@ -189,14 +189,14 @@ export class Node {
     if (this.#pressType == 0) {
       Selection.singleton.moveAll(delta);
     } else {
-      this.#width = Math.max(this.#opos.x + delta[0], 40);
-      this.#height = Math.max(this.#opos.y + delta[1], 40);
+      this.#width = Math.max(this.#opos.x + delta.x, 40);
+      this.#height = Math.max(this.#opos.y + delta.y, 40);
       this.#scaleElementRequest();
       this.update();
     }
   }
   moveOn(delta) {
-    this.position.set(this.#opos.x + delta[0], this.#opos.y + delta[1]);
+    this.position.set(this.#opos.x + delta.x, this.#opos.y + delta.y);
     // this.#moveElementRequest();
     this.update();
   }
@@ -204,11 +204,11 @@ export class Node {
     this.#opos = new Point(this.position.x, this.position.y);
   }
   #onNodePressed(e) {
-    const coords = [e.pageX, e.pageY];
+    const coords = new Point(e.pageX, e.pageY);
     const rect = this.el.getBoundingClientRect();
     if (
-      coords[0] > rect.x + rect.width - 20 &&
-      coords[1] > rect.y + rect.height - 20
+      coords.x > rect.x + rect.width - 20 &&
+      coords.y > rect.y + rect.height - 20
     ) {
       this.#opos = new Point(this.#width, this.#height);
       e.preventDefault();
@@ -254,7 +254,7 @@ export class Node {
     window.dispatchEvent(new Event("viewupdate"));
   }
   #onRename(e) {
-    this.#name = this.#textEl.innerHTML;
+    this.#name = this.#label.innerHTML;
     this.update();
   }
   #moveElementRequest() {
@@ -368,10 +368,10 @@ export class Node {
     };
   }
   get textWidth() {
-    return Math.max(this.#textEl.clientWidth, 40);
+    return Math.max(this.#label.clientWidth, 40);
   }
   get textHeight() {
-    return Math.max(this.#textEl.clientHeight, 40);
+    return Math.max(this.#label.clientHeight, 40);
   }
   get width() {
     return this.#width;

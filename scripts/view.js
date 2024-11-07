@@ -44,7 +44,7 @@ export class View {
       e.preventDefault();
       e.stopPropagation();
       Selection.singleton.clear();
-      this._sp = [e.pageX, e.pageY];
+      this._sp = new Point(e.pageX, e.pageY);
       this.#opos = new Point(this.position.x, this.position.y);
     }
   }
@@ -69,8 +69,8 @@ export class View {
         return;
       }
       this.position.set(
-        this.#opos.x + e.pageX - this._sp[0],
-        this.#opos.y + e.pageY - this._sp[1]
+        this.#opos.x + e.pageX - this._sp.x,
+        this.#opos.y + e.pageY - this._sp.y
       );
       this.update();
     }
@@ -149,6 +149,16 @@ export class View {
   }
   showAlertForConnectingConnectionToItself() {
     this.#alert.textContent = "Вы не можете присоединить связь к самой себе.";
+    this.#showAlert();
+  }
+  showAlertForConnectingTwoFreeSockets() {
+    this.#alert.textContent =
+      "Вы не можете соединить два свободных конца ребёр.";
+    this.#showAlert();
+  }
+  showAlertForConnectingFreeSocketAndPoint() {
+    this.#alert.textContent =
+      "Вы не можете соединить свободный конец ребра и ребро.";
     this.#showAlert();
   }
   #showAlert() {

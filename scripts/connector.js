@@ -2,6 +2,7 @@ import { Connection } from "./connection.js";
 import { MovingConnection } from "./movingConnection.js";
 import { View } from "./view.js";
 import { ArrowType } from "./enum/ArrowType.js";
+import { FreeSocket } from "./socket.js";
 
 export class Connector {
   static singleton = new Connector();
@@ -91,21 +92,34 @@ export class Connector {
     this.#connect(conn);
   }
   connectAssociation(point, targetConnection) {
-    const conn = new Connection(
-      this.currentSocket,
-      null,
-      point,
-      ArrowType.None,
-      ArrowType.None,
-      true
-    );
-    targetConnection.connectedConnections.push(conn);
-    this.#connect(conn);
+    if (this.currentSocket instanceof FreeSocket) {
+      View.singleton.showAlertForConnectingFreeSocketAndPoint();
+      this.currentSocket = null;
+    } else {
+      const conn = new Connection(
+        this.currentSocket,
+        null,
+        point,
+        ArrowType.None,
+        ArrowType.None,
+        true
+      );
+      targetConnection.connectedConnections.push(conn);
+      this.#connect(conn);
+    }
   }
   connectSockets(sock) {
-    const conn = new Connection(this.currentSocket, sock);
-    sock.addConnection(conn);
-    this.#connect(conn);
+    if (
+      this.currentSocket instanceof FreeSocket &&
+      sock instanceof FreeSocket
+    ) {
+      View.singleton.showAlertForConnectingTwoFreeSockets();
+      this.currentSocket = null;
+    } else {
+      const conn = new Connection(this.currentSocket, sock);
+      sock.addConnection(conn);
+      this.#connect(conn);
+    }
   }
   #connect(conn) {
     this.currentSocket.addConnection(conn);
