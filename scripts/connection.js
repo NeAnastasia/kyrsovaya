@@ -5,7 +5,7 @@ import { View } from "./view.js";
 import { ArrowsCreatingPath } from "./arrowsCreatingPath.js";
 import { Point, ConnectingPoint } from "./point.js";
 import { MovingConnection } from "./movingConnection.js";
-import { NodeSocket } from "./socket.js";
+import { FreeSocket, NodeSocket } from "./socket.js";
 
 export class Connection {
   static idCon = 0;
@@ -528,10 +528,6 @@ export class Connection {
   toJSON() {
     const toJSONClass = {
       id: this.id,
-      inSock: {
-        type: this.inSock.type,
-        id: this.inSock.parent.id,
-      },
       arrowTypeEnd: this.arrowTypeEnd,
       arrowTypeStart: this.arrowTypeStart,
       textCenter: this.spanCenter.textContent,
@@ -539,12 +535,28 @@ export class Connection {
       textStart: this.spanIn.textContent,
       color: this.color,
     };
-    if (this.outSock !== null) {
-      toJSONClass.outSock = {
-        type: this.outSock.type,
-        id: this.outSock.parent.id,
+    if (this.inSock instanceof FreeSocket) {
+      toJSONClass.inSock = {
+        id: this.inSock.id,
       };
-      toJSONClass.outPoint = null;
+    } else {
+      toJSONClass.inSock = {
+        type: this.inSock.type,
+        id: this.inSock.parent.id,
+      };
+    }
+    if (this.outSock !== null) {
+      if (this.outSock instanceof FreeSocket) {
+        toJSONClass.outSock = {
+          id: this.outSock.id,
+        };
+      } else {
+        toJSONClass.outSock = {
+          type: this.outSock.type,
+          id: this.outSock.parent.id,
+        };
+        toJSONClass.outPoint = null;
+      }
     } else {
       toJSONClass.outSock = null;
       toJSONClass.outPoint = {

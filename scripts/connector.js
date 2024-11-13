@@ -115,6 +115,7 @@ export class Connector {
     ) {
       View.singleton.showAlertForConnectingTwoFreeSockets();
       this.currentSocket = null;
+      sock.checkIfNeedsToBeDeleted();
     } else {
       const conn = new Connection(this.currentSocket, sock);
       sock.addConnection(conn);

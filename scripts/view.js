@@ -84,17 +84,18 @@ export class View {
       if (Connector.singleton.currentSocket !== null) {
         const socket = new FreeSocket(new Point(e.pageX, e.pageY));
         Connector.singleton.connectSockets(socket);
+      } else {
+        const selection = window.getSelection();
+        if (selection.rangeCount > 0) {
+          selection.removeAllRanges();
+        }
+        if ($(".text-menu").length !== 0) {
+          TextMenu.singleton.deleteMenu();
+        }
+        document.activeElement.blur();
+        Selection.singleton.clear();
+        this.removeAlert();
       }
-      const selection = window.getSelection();
-      if (selection.rangeCount > 0) {
-        selection.removeAllRanges();
-      }
-      if ($(".text-menu").length !== 0) {
-        TextMenu.singleton.deleteMenu();
-      }
-      document.activeElement.blur();
-      Selection.singleton.clear();
-      this.removeAlert();
     } else {
       this.#isMouseDownHappened = false;
     }

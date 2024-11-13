@@ -126,6 +126,9 @@ export class FreeSocket extends Socket {
   }
   removeConnection(conn) {
     super.removeConnection(conn);
+    checkIfNeedsToBeDeleted();
+  }
+  checkIfNeedsToBeDeleted() {
     if (this.connections.length == 0) {
       $(this.el).remove();
       View.singleton.removeFreeSocket(this);
