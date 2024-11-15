@@ -126,7 +126,7 @@ export class FreeSocket extends Socket {
   }
   removeConnection(conn) {
     super.removeConnection(conn);
-    checkIfNeedsToBeDeleted();
+    this.checkIfNeedsToBeDeleted();
   }
   checkIfNeedsToBeDeleted() {
     if (this.connections.length == 0) {

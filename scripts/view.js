@@ -55,9 +55,11 @@ export class View {
       this.#opos = null;
       this._sp = null;
     } else {
-      Connector.singleton.reconnect(
-        new FreeSocket(new Point(e.pageX, e.pageY))
-      );
+      if (!e.target.classList.contains("node-connection-socket")) {
+        Connector.singleton.reconnect(
+          new FreeSocket(new Point(e.pageX, e.pageY))
+        );
+      }
       this.#resetAftermathOfMovingConnection();
     }
   }
@@ -82,6 +84,7 @@ export class View {
       (e.target == this.el || e.target == this.#container)
     ) {
       if (Connector.singleton.currentSocket !== null) {
+        console.log("waw");
         const socket = new FreeSocket(new Point(e.pageX, e.pageY));
         Connector.singleton.connectSockets(socket);
       } else {
