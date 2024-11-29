@@ -16,6 +16,7 @@ export class View {
     this.el = $("#view-area")[0];
     this.#container = $("#view")[0];
     this.connectionIsMoving = false;
+    this.isMouseDownOnFreeSocket = false;
     this.#isMouseDownHappened = false;
     this.#container.addEventListener("mousedown", this.#down.bind(this));
     window.addEventListener("mouseup", this.#up.bind(this));
@@ -55,7 +56,7 @@ export class View {
       this.#opos = null;
       this._sp = null;
     } else {
-      if (!e.target.classList.contains("node-connection-socket")) {
+      if (!e.target.classList.contains("node-connection-socket") && !e.target.classList.contains("arrow")) {
         Connector.singleton.reconnect(
           new FreeSocket(new Point(e.pageX, e.pageY))
         );
@@ -84,7 +85,6 @@ export class View {
       (e.target == this.el || e.target == this.#container)
     ) {
       if (Connector.singleton.currentSocket !== null) {
-        console.log("waw");
         const socket = new FreeSocket(new Point(e.pageX, e.pageY));
         Connector.singleton.connectSockets(socket);
       } else {

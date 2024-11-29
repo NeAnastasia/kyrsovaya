@@ -10,22 +10,6 @@ export class Socket {
     }
     this.el = el;
     this.connections = [];
-    this.el.addEventListener("mousedown", (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      if (Connector.singleton.currentSocket == null) {
-        Connector.singleton.currentSocket = this;
-        console.log("grabbed");
-      } else {
-        Connector.singleton.connectSockets(this);
-        console.log("connected");
-      }
-    });
-    $(this.el).on("mouseup", (e) => {
-      if (View.singleton.connectionIsMoving) {
-        Connector.singleton.reconnect(this);
-      }
-    });
   }
   addConnection(conn) {
     this.connections.push(conn);
@@ -61,6 +45,24 @@ export class NodeSocket extends Socket {
     super(el);
     this.parent = parent;
     this.#type = type;
+    this.el.addEventListener("mousedown", this.down.bind(this));
+    $(this.el).on("mouseup", this.up.bind(this));
+  }
+  down(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (Connector.singleton.currentSocket == null) {
+      Connector.singleton.currentSocket = this;
+      console.log("grabbed");
+    } else {
+      Connector.singleton.connectSockets(this);
+      console.log("connected");
+    }
+  }
+  up(e) {
+    if (View.singleton.connectionIsMoving) {
+      Connector.singleton.reconnect(this);
+    }
   }
   getAbsolutePosition() {
     return new Point(
@@ -114,15 +116,18 @@ export class FreeSocket extends Socket {
       FreeSocket.idSockNum = parseInt(id.replace("free-socket-", ""), 10);
       FreeSocket.idSockNum = FreeSocket.idSockNum + 1;
     }
+    this.isMouseDown = false;
     this.position = point;
     this.position.set(
       point.x - View.singleton.position.x,
       point.y - View.singleton.position.y
     );
-    this.el.style.top = this.position.y - el.offsetHeight / 2 + "px";
-    this.el.style.left = this.position.x - el.offsetWidth / 2 + "px";
+    this.setStyleTopLeft();
     this.el.setAttribute("id", this.id);
     View.singleton.freeSockets.push(this);
+    this.el.addEventListener("mousedown", this.down.bind(this));
+    $(this.el).on("mouseup", this.up.bind(this));
+    this.el.addEventListener("mousemove", this.move.bind(this));
   }
   removeConnection(conn) {
     super.removeConnection(conn);
@@ -133,5 +138,25 @@ export class FreeSocket extends Socket {
       $(this.el).remove();
       View.singleton.removeFreeSocket(this);
     }
+  }
+  down(e) {
+    this.isMouseDown = true;
+  }
+  up(e) {
+    this.isMouseDown = false;
+  }
+  move(e) {
+    if(this.isMouseDown) {
+      this.position.set(
+        e.pageX - View.singleton.position.x,
+        e.pageY - View.singleton.position.y
+      );
+      this.setStyleTopLeft();
+      console.log("moving...")
+    }
+  }
+  setStyleTopLeft() {
+    this.el.style.top = this.position.y - this.el.offsetHeight / 2 + "px";
+    this.el.style.left = this.position.x - this.el.offsetWidth / 2 + "px";
   }
 }

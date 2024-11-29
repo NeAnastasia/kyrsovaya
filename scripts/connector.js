@@ -10,17 +10,19 @@ export class Connector {
     this.currentSocket = null;
   }
   reconnect(socket) {
-    if (MovingConnection.singleton.currentConnection.outPoint !== null) {
+    if (
+      MovingConnection.singleton.currentConnection.outPoint !== null &&
+      this.currentSocket === null
+    ) {
       this.currentSocket = socket;
       this.reconnectAssociation(
         MovingConnection.singleton.currentConnection.outPoint,
         MovingConnection.singleton.currentConnection.outPoint.connectionParent
       );
-      MovingConnection.singleton.deleteCurrentConnection();
     } else {
       this.#reconnectSockets(socket);
-      MovingConnection.singleton.deleteCurrentConnection();
     }
+    MovingConnection.singleton.deleteCurrentConnection();
   }
   reconnectAssociation(point, targetConnection) {
     const oldConnection = MovingConnection.singleton.currentConnection;
