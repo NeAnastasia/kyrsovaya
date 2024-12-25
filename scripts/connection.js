@@ -469,6 +469,14 @@ export class Connection {
         "px";
     }
   }
+  disableClickEndEls() {
+    $(this.#inClick).addClass("click-el-hidden");
+    $(this.#outClick).addClass("click-el-hidden");
+  }
+  enableClickEndEls() {
+    $(this.#inClick).removeClass("click-el-hidden");
+    $(this.#outClick).removeClass("click-el-hidden");
+  }
   update() {
     if (this.outSock !== null) {
       this.#arrowLines = ArrowsCreatingPath.singleton.creatingPathForSockets(

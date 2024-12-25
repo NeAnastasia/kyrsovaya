@@ -41,7 +41,7 @@ export class View {
     )[0];
   }
   #down(e) {
-    if (!this.connectionIsMoving) {
+    if (!this.connectionIsMoving && !this.isMouseDownOnFreeSocket) {
       e.preventDefault();
       e.stopPropagation();
       Selection.singleton.clear();
@@ -50,22 +50,27 @@ export class View {
     }
   }
   #up(e) {
-    if (!this.connectionIsMoving) {
-      e.preventDefault();
-      e.stopPropagation();
-      this.#opos = null;
-      this._sp = null;
-    } else {
-      if (!e.target.classList.contains("node-connection-socket") && !e.target.classList.contains("arrow")) {
-        Connector.singleton.reconnect(
-          new FreeSocket(new Point(e.pageX, e.pageY))
-        );
+    if (!this.isMouseDownOnFreeSocket) {
+      if (!this.connectionIsMoving) {
+        e.preventDefault();
+        e.stopPropagation();
+        this.#opos = null;
+        this._sp = null;
+      } else {
+        if (
+          !e.target.classList.contains("node-connection-socket") &&
+          !e.target.classList.contains("arrow")
+        ) {
+          Connector.singleton.reconnect(
+            new FreeSocket(new Point(e.pageX, e.pageY))
+          );
+        }
+        this.#resetAftermathOfMovingConnection();
       }
-      this.#resetAftermathOfMovingConnection();
     }
   }
   #move(e) {
-    if (!this.connectionIsMoving) {
+    if (!this.connectionIsMoving && !this.isMouseDownOnFreeSocket) {
       e.preventDefault();
       e.stopPropagation();
       if (this.#opos == null) {
@@ -79,28 +84,30 @@ export class View {
     }
   }
   #click(e) {
-    if (
-      !this.connectionIsMoving &&
-      !this.#isMouseDownHappened &&
-      (e.target == this.el || e.target == this.#container)
-    ) {
-      if (Connector.singleton.currentSocket !== null) {
-        const socket = new FreeSocket(new Point(e.pageX, e.pageY));
-        Connector.singleton.connectSockets(socket);
+    if (!this.isMouseDownOnFreeSocket) {
+      if (
+        !this.connectionIsMoving &&
+        !this.#isMouseDownHappened &&
+        (e.target == this.el || e.target == this.#container)
+      ) {
+        if (Connector.singleton.currentSocket !== null) {
+          const socket = new FreeSocket(new Point(e.pageX, e.pageY));
+          Connector.singleton.connectSockets(socket);
+        } else {
+          const selection = window.getSelection();
+          if (selection.rangeCount > 0) {
+            selection.removeAllRanges();
+          }
+          if ($(".text-menu").length !== 0) {
+            TextMenu.singleton.deleteMenu();
+          }
+          document.activeElement.blur();
+          Selection.singleton.clear();
+          this.removeAlert();
+        }
       } else {
-        const selection = window.getSelection();
-        if (selection.rangeCount > 0) {
-          selection.removeAllRanges();
-        }
-        if ($(".text-menu").length !== 0) {
-          TextMenu.singleton.deleteMenu();
-        }
-        document.activeElement.blur();
-        Selection.singleton.clear();
-        this.removeAlert();
+        this.#isMouseDownHappened = false;
       }
-    } else {
-      this.#isMouseDownHappened = false;
     }
   }
   addNode(node) {

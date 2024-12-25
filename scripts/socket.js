@@ -126,7 +126,7 @@ export class FreeSocket extends Socket {
     this.el.setAttribute("id", this.id);
     View.singleton.freeSockets.push(this);
     this.el.addEventListener("mousedown", this.down.bind(this));
-    $(this.el).on("mouseup", this.up.bind(this));
+    this.el.addEventListener("mouseup", this.up.bind(this));
     this.el.addEventListener("mousemove", this.move.bind(this));
   }
   removeConnection(conn) {
@@ -140,19 +140,29 @@ export class FreeSocket extends Socket {
     }
   }
   down(e) {
-    this.isMouseDown = true;
+    $(this.el).addClass("moving");
+    for (var i = 0; i < this.connections.length; i++) {
+      this.connections[i].disableClickEndEls();
+    }
+    View.singleton.isMouseDownOnFreeSocket = true;
   }
   up(e) {
-    this.isMouseDown = false;
+    $(this.el).removeClass("moving");
+    for (var i = 0; i < this.connections.length; i++) {
+      this.connections[i].enableClickEndEls();
+    }
+    View.singleton.isMouseDownOnFreeSocket = false;
   }
   move(e) {
-    if(this.isMouseDown) {
+    if (View.singleton.isMouseDownOnFreeSocket) {
       this.position.set(
         e.pageX - View.singleton.position.x,
         e.pageY - View.singleton.position.y
       );
       this.setStyleTopLeft();
-      console.log("moving...")
+      for (var i = 0; i < this.connections.length; i++) {
+        this.connections[i].update();
+      }
     }
   }
   setStyleTopLeft() {

@@ -166,8 +166,12 @@ svg.node-connection > path {
   opacity: 1;
 }
 
-.node-connection-socket.freeone:hover {
+.node-connection-socket.freeone.moving {
   opacity: 1;
+}
+
+.click-el-hidden {
+  display: none;
 }
 
 .menu {
