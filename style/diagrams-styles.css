@@ -1,0 +1,92 @@
+.new-diagrams-container, .no-diagrams-container {
+    display: flex;
+    align-items: center;
+    background: white;
+    padding: 20px;
+    margin-top: 20px;
+    background-color: #e9f3ff;
+    border-radius: 15px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.no-diagrams-container {
+    justify-content: center;
+    width: 100%;
+}
+
+.text-input {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 10px;
+    margin-right: 10px;
+}
+
+.access-options {
+    display: flex;
+    align-items: center;
+    margin-right: 10px;
+}
+
+.access-options label {
+    margin-right: 10px;
+}
+
+.create-button {
+    padding: 10px 15px;
+    background-color: #346cb0;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.create-button:hover {
+    background-color: #30619f;
+}
+
+.diagram-info-container, .diagrams-container {
+    display: flex;
+    align-items: center;
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    width: 100%;
+}
+
+.diagrams-container {
+    flex-wrap: wrap;
+}
+
+.diagram-info-container {
+    box-sizing: border-box;  /* Учитываем отступы и границы в ширине */
+    margin-bottom: 20px;     /* Отступ снизу для разделения строк */
+    justify-content: center;
+}
+
+.diagram-info-title {
+    font-size: 24px;
+    margin-right: 20px;
+}
+
+.diagram-info-button {
+    background-color: transparent; 
+    border: none; 
+    cursor: pointer; 
+    margin-left: 10px; 
+    font-size: 20px;
+    color: #346cb0; 
+}
+
+.diagram-info-button:hover {
+    color: #30619f; 
+}
+
+@media (min-width: 600px) {
+    .diagram-info-container {
+        width: 48%; /* Ширина для более широких экранов */
+        margin-left: 20px;
+    }
+}

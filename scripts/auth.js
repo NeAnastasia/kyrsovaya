@@ -1,13 +1,16 @@
 import { BaseAuthURL } from "./consts/baseUrl.js";
+import { Navbar } from "./navbar.js";
+import { navigate } from "./router.js";
 
 export class Authentication {
+  static singleton = new Authentication();
   constructor() {
-    this.takeElements();
     this.isLogin = false;
+    this.errorMessage = "";
   }
 
-  isLoginSwitch() {
-    this.isLogin = !this.isLogin;
+  isLoginSet(isLogin) {
+    this.isLogin = isLogin;
     this.takeElements();
   }
 
@@ -18,62 +21,65 @@ export class Authentication {
     this.errorMessage = document.getElementById("errorMessage");
     this.toggleForm = document.getElementById("toggleForm");
 
-    console.log(this.formContainer, this.formTitle, this.authForm, this.errorMessage, this.toggleForm);
-    
-    authForm.addEventListener("submit", (event) => {
-      console.log("mlemььь");
+    this.authForm.addEventListener("submit", (event) => {
       event.preventDefault();
       errorMessage.textContent = "";
-      console.log("mlem");
 
       const username = document.getElementById("username").value;
       const password = document.getElementById("password").value;
 
       if (this.isLogin) {
-        this.#sendLogInInfo(username, password);
+        this.sendLogInInfo(username, password);
       } else {
-        this.#sendRegistrationInfo(username, password);
+        this.sendRegistrationInfo(username, password);
       }
+    });
+
+    this.toggleForm.addEventListener("click", (e) => {
+      navigate(e);
+      this.isLoginSwitch();
     });
   }
 
-  #sendRegistrationInfo(username, password) {
+  sendRegistrationInfo(username, password) {
     $.ajax({
-      url: BaseAuthURL + "/register", 
-      type: 'POST',
-      contentType: 'application/json',
+      url: BaseAuthURL + "/register",
+      type: "POST",
+      contentType: "application/json",
       data: JSON.stringify({
-          username: username,
-          password: password
+        username: username,
+        password: password,
       }),
-      success: function(response) {
-          // Обработка успешного ответа
-          console.log('Reg successful:', response);
+      success: () => {
+        this.sendLogInInfo(username, password);
       },
-      error: function(jqXHR, textStatus, errorThrown) {
-          // Обработка ошибок
-          console.error('Reg failed:', textStatus, errorThrown);
-      }
-  });
+      error: (jqXHR, textStatus, errorThrown) => {
+        this.errorMessage.innerHTML = "Не удалось зарегистрироваться";
+        console.error("Reg failed:", textStatus, errorThrown);
+      },
+    });
   }
 
-  #sendLogInInfo(username, password) {
+  sendLogInInfo(username, password) {
     $.ajax({
-      url: BaseAuthURL + "/login", 
-      type: 'POST',
-      contentType: 'application/json',
+      url: BaseAuthURL + "/login",
+      type: "POST",
+      contentType: "application/json",
       data: JSON.stringify({
-          username: username,
-          password: password
+        username: username,
+        password: password,
       }),
-      success: function(response) {
-          // Обработка успешного ответа
-          console.log('Login successful:', response);
+      success: (response) => {
+        localStorage.setItem("token", response.token);
+        console.log("Login successful:", response);
+        Navbar.singleton.login();
+        window.location.hash = "#diagrams";
       },
-      error: function(jqXHR, textStatus, errorThrown) {
-          // Обработка ошибок
-          console.error('Login failed:', textStatus, errorThrown);
-      }
-  });
+      error: (jqXHR, textStatus, errorThrown) => {
+        this.errorMessage.textContent =
+          "Не удалось совершить вход. Неверные юзернейм или пароль";
+        console.error("Login failed:", textStatus, errorThrown);
+      },
+    });
   }
 }

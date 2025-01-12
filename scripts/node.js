@@ -6,18 +6,20 @@ import { TextMenu } from "./textMenu.js";
 import { NodeType } from "./enum/NodeType.js";
 import { SocketType } from "./enum/SocketType.js";
 import { Point } from "./point.js";
+import { BaseOperationsURL } from "./consts/baseUrl.js";
 
 export class Node {
   static idC = 0;
   static nodes = {};
-  #width = 140;
-  #height = 140;
+  #width;
+  #height;
   #ptype;
   #opos;
   #pressType;
   #name;
   #contentEls;
   #label;
+  #moveRequestCounter;
   static deductTemplate(type) {
     switch (type) {
       case NodeType.Object: {
@@ -31,13 +33,12 @@ export class Node {
       }
     }
   }
-  constructor(name = "", type = NodeType.Default, id = "") {
+  constructor(name = "", type = NodeType.Default, id = "", position) {
     if (id === "") {
       this.id = "node-" + Node.idC;
       Node.idC++;
     } else {
       this.id = id;
-      Node.idC = parseInt(id.replace("node-", ""), 10);
       Node.idC = Node.idC + 1;
     }
     this.isDblClick = false;
@@ -52,9 +53,14 @@ export class Node {
       this.#onNodeReleased.bind(this),
       this.#onNodeMove.bind(this)
     );
-    this.position = new Point(0, 0);
+    const navbar = document.getElementById("navbar");
+    const navbarHeight = navbar ? navbar.offsetHeight : 0;
+    this.position = new Point(position.x, position.y);
     this.#opos = null;
     this.#pressType = 0;
+    this.#width = 140;
+    this.#height = 140;
+    this.#moveRequestCounter = 0;
 
     this.sockets = {
       up: new NodeSocket(
@@ -164,7 +170,6 @@ export class Node {
     });
     window.addEventListener("mousemove", this.#mouseMoveRaw.bind(this));
     this.update();
-    this.#addElementRequest();
   }
   #mouseMoveRaw(e) {
     const coords = new Point(e.pageX, e.pageY);
@@ -197,7 +202,11 @@ export class Node {
   }
   moveOn(delta) {
     this.position.set(this.#opos.x + delta.x, this.#opos.y + delta.y);
-    // this.#moveElementRequest();
+    this.#moveRequestCounter++;
+    if (this.#moveRequestCounter >= 100) {
+      this.#moveElementRequest();
+      this.#moveRequestCounter = 0;
+    }
     this.update();
   }
   press(e) {
@@ -229,6 +238,10 @@ export class Node {
   #onNodeReleased(e) {
     this.#opos = null;
     window.dispatchEvent(new Event("viewupdate"));
+    if (this.#moveRequestCounter !== 0) {
+      this.#moveElementRequest();
+      this.#moveRequestCounter = 0;
+    }
   }
   update() {
     this.el.style.transform = `translate(${this.position.x}px, ${this.position.y}px)`;
@@ -243,9 +256,12 @@ export class Node {
       this.el.classList.add(this.type);
     }
   }
-  remove() {
-    this.#removeElementRequest();
+  removeHTMLElement() {
     $(this.el).remove();
+  }
+  remove() {
+    this.removeElementRequest();
+    this.removeHTMLElement();
   }
   destroy() {
     for (const key in this.sockets) {
@@ -255,116 +271,188 @@ export class Node {
   }
   #onRename(e) {
     this.#name = this.#label.innerHTML;
+    this.updateTextOfElementRequest("label", this.#name);
     this.update();
   }
-  #moveElementRequest() {
+  findSocketByPosition(x, y) {
+    return (
+      Object.values(this.sockets).find((socket) => {
+        const position = socket.getAbsolutePosition(); // Получаем позицию сокета
+        return position.x === x && position.y === y; // Сравниваем координаты
+      }) || null
+    ); // Возвращаем найденный сокет или null, если не найден
+  }
+  updateTextOfElementRequest(field_type, text) {
+    //done
+    const id = window.location.hash.split("/").pop();
     $.ajax({
-      url: "/diagram/" + localStorage.getItem("diagramId") + "/operation/move",
-      method: "post",
-      dataType: "json",
-      data: {
-        elementId: this.id,
-        position: {
+      url: BaseOperationsURL + "/api/v1/diagrams/" + id + "/node/text",
+      method: "PATCH",
+      contentType: "application/json",
+      headers: {
+        Authorization: "Bearer " + localStorage.getItem("token"),
+      },
+      data: JSON.stringify({
+        node_id: this.id,
+        field_type: field_type,
+        text: text,
+      }),
+      success: (response) => {
+        console.log("Update text: ", response);
+      },
+      error: (jqXHR, textStatus, errorThrown) => {
+        console.error("Updating text failed:", textStatus, errorThrown);
+      },
+    });
+  }
+  #moveElementRequest() {
+    //done
+    const id = window.location.hash.split("/").pop();
+    $.ajax({
+      url: BaseOperationsURL + "/api/v1/diagrams/" + id + "/element/move",
+      method: "PATCH",
+      contentType: "application/json",
+      headers: {
+        Authorization: "Bearer " + localStorage.getItem("token"),
+      },
+      data: JSON.stringify({
+        element_id: this.id,
+        new_position: {
           x: this.position.x,
           y: this.position.y,
         },
+      }),
+      success: (response) => {
+        console.log("Move element: ", response);
       },
-      success: function () {
-        console.log("moveInfoIsSent");
+      error: (jqXHR, textStatus, errorThrown) => {
+        console.error("Moving element failed:", textStatus, errorThrown);
       },
     });
   }
   #scaleElementRequest() {
+    //done
+    const id = window.location.hash.split("/").pop();
     $.ajax({
-      url: "/diagram/" + localStorage.getItem("diagramId") + "/operation/scale",
-      method: "post",
-      dataType: "json",
-      data: {
-        elementId: this.id,
-        size: {
-          x: this.#width,
-          y: this.#height,
+      url: BaseOperationsURL + "/api/v1/diagrams/" + id + "/node/scale",
+      method: "PATCH",
+      contentType: "application/json",
+      headers: {
+        Authorization: "Bearer " + localStorage.getItem("token"),
+      },
+      data: JSON.stringify({
+        node_id: this.id,
+        new_size: {
+          width: this.#width,
+          height: this.#height,
         },
+      }),
+      success: (response) => {
+        console.log("Scale element: ", response);
       },
-      success: function () {
-        console.log("scaleInfoIsSent");
-      },
-    });
-  }
-  #removeElementRequest() {
-    $.ajax({
-      url:
-        "/diagram/" + localStorage.getItem("diagramId") + "/operation/remove",
-      method: "post",
-      dataType: "json",
-      data: {
-        elementId: this.id,
-      },
-      success: function () {
-        console.log("removeInfoIsSent");
+      error: (jqXHR, textStatus, errorThrown) => {
+        console.error("Updating scale failed:", textStatus, errorThrown);
       },
     });
   }
-  #addElementRequest() {
+  removeElementRequest() {
+    //done
+    const id = window.location.hash.split("/").pop();
     $.ajax({
-      url: "/diagram/" + localStorage.getItem("diagramId") + "/operation/", //!!
-      method: "post",
-      dataType: "json",
-      data: this.toJSON(),
-      success: function () {
-        console.log("removeInfoIsSent");
+      url: BaseOperationsURL + "/v1/diagrams/" + id + "/element/remove",
+      method: "DELETE",
+      contentType: "application/json",
+      headers: {
+        Authorization: "Bearer " + localStorage.getItem("token"),
+      },
+      data: JSON.stringify({ element_id: this.id }),
+      success: (response) => {
+        console.log("Deleting element", response);
+      },
+      error: (jqXHR, textStatus, errorThrown) => {
+        console.error("Removing element failed:", textStatus, errorThrown);
+      },
+    });
+  }
+  addElementRequest() {
+    //done
+    const id = window.location.hash.split("/").pop();
+    $.ajax({
+      url: BaseOperationsURL + "/v1/diagram/" + id + "/node/add",
+      method: "POST",
+      contentType: "application/json",
+      headers: {
+        Authorization: "Bearer " + localStorage.getItem("token"),
+      },
+      data: JSON.stringify(this.toJSON()),
+      success: (response) => {
+        console.log("Add element", response);
+      },
+      error: (jqXHR, textStatus, errorThrown) => {
+        console.error("Adding element failed:", textStatus, errorThrown);
       },
     });
   }
   static fromJSON(json) {
-    const tname = json.type || NodeType.Default;
+    const tname = json.NodeType || NodeType.Default;
     let node;
     switch (tname) {
       case NodeType.Default:
         {
-          node = new RectNode(json.text, json.type, json.id);
+          node = new RectNode(json.Label, tname, json.Id, {
+            x: json.x,
+            y: json.y,
+          });
         }
         break;
       case NodeType.Rhombus:
         {
-          node = new RhombusNode(json.text, json.type, json.id);
+          node = new RhombusNode(json.Label, tname, json.Id, {
+            x: json.x,
+            y: json.y,
+          });
         }
         break;
       case NodeType.Object:
         {
-          node = new ObjectNode(json.text, json.type, json.id, json.content1);
+          node = new ObjectNode(json.Label, tname, json.Id, json.Content1, {
+            x: json.x,
+            y: json.y,
+          });
         }
         break;
       case NodeType.Class:
         {
           node = new ClassNode(
-            json.text,
-            json.type,
-            json.id,
-            json.content1,
-            json.content2
+            json.Label,
+            tname,
+            json.Id,
+            json.Content1,
+            json.Content2,
+            { x: json.x, y: json.y }
           );
         }
         break;
 
       default:
         {
-          node = new Node(json.text, json.type, json.id);
+          node = new Node(json.Label, tname, json.Id, { x: json.x, y: json.y });
         }
         break;
     }
-
-    node.position = new Point(json.position.x, json.position.y);
+    node.#width = json.width !== undefined ? json.width : node.#width;
+    node.#height = json.height !== undefined ? json.height : node.#height;
     View.singleton.addNode(node);
     node.update();
     return node;
   }
   toJSON() {
     return {
-      id: this.id,
-      type: this.type,
-      position: this.position,
-      text: this.#name,
+      position: { x: this.position.x, y: this.position.y },
+      size: { width: this.#width, height: this.#height },
+      node_type: this.type,
+      color: "#FF00FF",
+      label: this.#label.innerHTML,
     };
   }
   get textWidth() {
@@ -382,8 +470,8 @@ export class Node {
 }
 
 class RectNode extends Node {
-  constructor(name, type, id) {
-    super(name, type, id);
+  constructor(name, type, id, position) {
+    super(name, type, id, position);
 
     this.svgArea = $(this.el).find("svg");
 
@@ -420,8 +508,8 @@ class RectNode extends Node {
 }
 
 class RhombusNode extends Node {
-  constructor(name, type, id) {
-    super(name, type, id);
+  constructor(name, type, id, position) {
+    super(name, type, id, position);
 
     this.svgArea = $(this.el).find("svg");
 
@@ -457,8 +545,8 @@ class RhombusNode extends Node {
   }
 }
 class ObjectNode extends Node {
-  constructor(name, type, id, content) {
-    super(name, type, id);
+  constructor(name, type, id, content, position) {
+    super(name, type, id, position);
 
     this.svgArea = $(this.el).find("svg");
 
@@ -471,6 +559,7 @@ class ObjectNode extends Node {
     this.textContentEl.html(this.textContent);
     this.textContentEl.on("input", () => {
       this.textContent = this.textContentEl.html();
+      this.updateTextOfElementRequest("content1", this.textContent);
       window.dispatchEvent(new Event("viewupdate"));
     });
     this.update();
@@ -536,14 +625,14 @@ class ObjectNode extends Node {
   }
   toJSON() {
     const json = super.toJSON();
-    json.content = this.textContent;
+    json.content1 = this.textContent;
     return json;
   }
 }
 
 class ClassNode extends Node {
-  constructor(name, type, id, fieldTexts, methodTexts) {
-    super(name, type, id);
+  constructor(name, type, id, fieldTexts, methodTexts, position) {
+    super(name, type, id, position);
 
     this.svgArea = $(this.el).find("svg");
 
@@ -562,11 +651,13 @@ class ClassNode extends Node {
     $(this.textContentEl1).on("input", () => {
       this.textContent1 = this.textContentEl1.html();
       this.update();
+      this.updateTextOfElementRequest("content1", this.textContent1);
       window.dispatchEvent(new Event("viewupdate"));
     });
     $(this.textContentEl2).on("input", () => {
       this.textContent2 = this.textContentEl2.html();
       this.update();
+      this.updateTextOfElementRequest("content2", this.textContent2);
       window.dispatchEvent(new Event("viewupdate"));
     });
     this.container = $(this.el).find(".node-inner");

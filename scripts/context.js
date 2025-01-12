@@ -21,7 +21,6 @@ export class ContextItem {
     this.#nameEl = this.#el.find("div.context-item.name");
     this.#parent.container.append(this.#el);
     this.#el.on("click", (e) => {
-      const position = new Point(0, 0);
       const r = View.singleton.el.getBoundingClientRect();
       var alert = $(
         `<div class="alert alert-info alert-click" role="alert">
@@ -30,13 +29,14 @@ export class ContextItem {
       )[0];
       $(alert).appendTo(document.body);
       $("#view").one("click", (e) => {
-        position.set(e.pageX - r.left, e.pageY - r.top);
         const data = {
-          type: ContextMenu.list[this.#name],
-          text: "text",
-          position: position,
+          NodeType: ContextMenu.list[this.#name],
+          Label: "text",
+          x: e.pageX - r.left,
+          y: e.pageY - r.top,
         };
-        Node.fromJSON(data);
+        const node = Node.fromJSON(data);
+        node.addElementRequest();
         $(".alert-info").remove();
       });
     });
@@ -52,6 +52,11 @@ export class ContextItem {
   render() {
     const i = $($(`#${this.templateName}-context`).html());
     this.#viewArea.html(i);
+  }
+  destroy() {
+    this.#el.off();
+    this.#el.remove();
+    this.#el = null;
   }
 }
 
@@ -96,5 +101,13 @@ export class ContextMenu {
   }
   get container() {
     return this.#container;
+  }
+  destroy() {
+    this.#items.forEach((item) => {
+      item.destroy();
+    });
+    this.#items = [];
+    this.#el.remove();
+    this.#el = null;
   }
 }

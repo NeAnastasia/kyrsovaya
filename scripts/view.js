@@ -13,12 +13,10 @@ export class View {
   #isMouseDownHappened;
   #alert;
   constructor() {
-    this.el = $("#view-area")[0];
-    this.#container = $("#view")[0];
+    this.JSONInfo = null;
     this.connectionIsMoving = false;
     this.isMouseDownOnFreeSocket = false;
     this.#isMouseDownHappened = false;
-    this.#container.addEventListener("mousedown", this.#down.bind(this));
     window.addEventListener("mouseup", this.#up.bind(this));
     window.addEventListener("mousemove", this.#move.bind(this));
     window.addEventListener("click", this.#click.bind(this));
@@ -31,6 +29,7 @@ export class View {
       if (e.key === "Delete") {
         for (const node of Selection.singleton.els) {
           this.#removeNode(node);
+          node.removeElementRequest();
         }
         Selection.singleton.clear();
       }
@@ -39,6 +38,13 @@ export class View {
       `<div class="alert alert-danger alert-click" role="alert">
       </div>`
     )[0];
+  }
+  defineElements() {
+    this.el = $("#view-area")[0];
+    this.#container = $("#view")[0];
+    this.#container.addEventListener("mousedown", this.#down.bind(this));
+    const rect = this.#container.getBoundingClientRect();
+    //this.position = new Point(rect.x, rect.y);
   }
   #down(e) {
     if (!this.connectionIsMoving && !this.isMouseDownOnFreeSocket) {
@@ -126,7 +132,7 @@ export class View {
     if (index != -1) {
       const n = this.nodes[index];
       this.nodes.splice(index, 1);
-      n.remove();
+      n.removeHTMLElement();
       window.dispatchEvent(new Event("viewupdate"));
     }
   }
@@ -204,24 +210,48 @@ export class View {
     }
     return ret;
   }
-  fromJSON(json) {
-    this.#clear();
-    for (const n of json.nodes) {
-      Node.fromJSON(n);
+  findNodeById(id) {
+    return this.nodes.find((node) => node.id === id) || null; 
+  }
+  fromJSON() {
+    if (this.JSONInfo !== null) {
+      this.#clear();
+      const diagramStructure = this.JSONInfo.diagram_structure.elements;
+
+      const nodes = Object.keys(diagramStructure)
+        .filter((key) => diagramStructure[key].ElementType === "Node")
+        .map((key) => Node.fromJSON(diagramStructure[key]));
+
+      const edges = Object.keys(diagramStructure)
+        .filter((key) => diagramStructure[key].ElementType === "Edge")
+        .map((key) => diagramStructure[key]);
+
+      console.log(edges);
+      // Object.keys(diagramStructure).forEach((key) => {
+      //   const value = diagramStructure[key];
+      //   if (value.ElementType === "Node") {
+      //     Node.fromJSON(value);
+      //   } else if (value.ElementType === "Edge") {
+      //     //Connection.fromJSON(value);
+      //   }
+      // });
+      // for (const n of json.diagram_structure.elements) {
+      //   Node.fromJSON(n);
+      // }
+      // const conns = json.connections.sort((a, b) => {
+      //   if (a.outPoint === null && b.outPoint !== null) {
+      //     return -1;
+      //   }
+      //   if (a.outPoint !== null && b.outPoint === null) {
+      //     return 1;
+      //   }
+      //   return 0;
+      // });
+      // for (const conn of conns) {
+      //   Connection.fromJSON(conn);
+      // }
+      window.dispatchEvent(new Event("viewupdate"));
     }
-    const conns = json.connections.sort((a, b) => {
-      if (a.outPoint === null && b.outPoint !== null) {
-        return -1;
-      }
-      if (a.outPoint !== null && b.outPoint === null) {
-        return 1;
-      }
-      return 0;
-    });
-    for (const conn of conns) {
-      Connection.fromJSON(conn);
-    }
-    window.dispatchEvent(new Event("viewupdate"));
   }
   #clear() {
     const tr = Object.values(Node.nodes);

@@ -1,4 +1,4 @@
-import { ArrowType } from "./enum/ArrowType.js";
+import { ArrowType, ArrowSVG } from "./enum/ArrowType.js";
 import { ArrowsMenu } from "./arrowsMenu.js";
 import { Connector } from "./connector.js";
 import { View } from "./view.js";
@@ -64,10 +64,10 @@ export class Connection {
       `<svg class="node-connection">
         <defs>
         <marker id="" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">` +
-        this.arrowTypeStart +
+        ArrowSVG[this.arrowTypeStart] +
         `</marker>
         <marker id="" markerWidth="10" markerHeight="7" refX="0" refY="3.5" orient="auto">` +
-        this.arrowTypeEnd +
+        ArrowSVG[this.arrowTypeEnd] +
         `</marker>
       </defs>
       <line> </line>
@@ -108,6 +108,7 @@ export class Connection {
       }
     });
     this.update();
+    View.singleton.update();
   }
   destroy() {
     $(this.#el).remove();
@@ -285,11 +286,11 @@ export class Connection {
   }
   #checkIfArrowsNeedToBeChanged() {
     if (this.arrowTypeEnd != this.#parrowTypeEnd) {
-      $(this.#el).find("marker")[1].innerHTML = this.arrowTypeEnd;
+      $(this.#el).find("marker")[1].innerHTML = ArrowSVG[this.arrowTypeEnd];
       this.#parrowTypeEnd = this.arrowTypeEnd;
     }
     if (this.arrowTypeStart != this.#parrowTypeStart) {
-      $(this.#el).find("marker")[0].innerHTML = this.arrowTypeStart;
+      $(this.#el).find("marker")[0].innerHTML = ArrowSVG[this.arrowTypeStart];
       this.#parrowTypeStart = this.arrowTypeStart;
     }
     if (this.isArrowsReversed) {
@@ -533,89 +534,124 @@ export class Connection {
     }
     this.#arrowLines = [];
   }
+
+  // ### Add Edge connected to Node (requires JWT token)
+  // POST {{base_url}}/v1/diagram/{{diagram_id}}/edge/add/to_node
+  // Content-Type: application/json
+  // Authorization: Bearer {{token}}
+
+  // {
+  //   "source_node_id": "0626e9ae-f106-41ec-a0dd-150939317841",
+  //   "source_connection_position": {
+  //     "x": 0,
+  //     "y": -1
+  //   },
+  //   "source_free_socket_id": null,
+  //   "target_node_id": "a68a8645-7eb7-4f46-ab07-2feae4554bae",
+  //   "target_connection_position": {
+  //     "x": 0,
+  //     "y": 1
+  //   },
+  //   "edge": {
+  //     "color": "#ff0000",
+  //     "arrowTypeSource": "Default",
+  //     "arrowTypeTarget": "None",
+  //     "lineStyle": "Solid",
+  //     "textStart": "Start",
+  //     "textCenter": "Center",
+  //     "textEnd": "End"
+  //   }
+  // }
+  // ### Update Line Style of Edge (new_line_style: dashed, solid)
+  // ### Update Arrow of Edge (new_arrow_type: none, default,filled,hollow, hollowRhombus,rhombus)
   toJSON() {
-    const toJSONClass = {
-      id: this.id,
-      arrowTypeEnd: this.arrowTypeEnd,
-      arrowTypeStart: this.arrowTypeStart,
-      textCenter: this.spanCenter.textContent,
-      textEnd: this.spanOut.textContent,
-      textStart: this.spanIn.textContent,
-      color: this.color,
-    };
-    if (this.inSock instanceof FreeSocket) {
-      toJSONClass.inSock = {
-        id: this.inSock.id,
-      };
-    } else {
-      toJSONClass.inSock = {
-        type: this.inSock.type,
-        id: this.inSock.parent.id,
-      };
-    }
-    if (this.outSock !== null) {
-      if (this.outSock instanceof FreeSocket) {
-        toJSONClass.outSock = {
-          id: this.outSock.id,
-        };
-      } else {
-        toJSONClass.outSock = {
-          type: this.outSock.type,
-          id: this.outSock.parent.id,
-        };
-        toJSONClass.outPoint = null;
+    console.log(
+      "toJSON",
+      this.inSock.getAbsolutePosition().x,
+      this.inSock.getAbsolutePosition(),
+      {
+        x: this.inSock.getAbsolutePosition().x,
+        y: this.inSock.getAbsolutePosition().y,
       }
-    } else {
-      toJSONClass.outSock = null;
-      toJSONClass.outPoint = {
-        position: { x: this.outPoint.x, y: this.outPoint.y },
-        parentId: [this.outPoint.connectionParent.id],
-      };
-    }
-    return toJSONClass;
-  }
-  static fromJSON(json) {
-    const n1 = getNode(parseFloat(json.inSock.id.replace("node-", ""), 10));
-    const inSock = n1.sockets[json.inSock.type];
-    var outSock = null;
-    var point = null;
-    var foundConnection = null;
-    if (json.outSock !== null) {
-      const n2 = getNode(parseFloat(json.outSock.id.replace("node-", ""), 10));
-      outSock = n2.sockets[json.outSock.type];
-    }
-    if (json.outPoint !== null) {
-      const targetId = json.outPoint.parentId;
-      foundConnection = View.singleton.connections.find(
-        (connection) => connection.id === targetId
-      );
-      point = new ConnectingPoint(
-        json.outPoint.x,
-        json.outPoint.y,
-        foundConnection
-      );
-    }
-    const conn = new Connection(
-      inSock,
-      outSock,
-      point,
-      json.arrowTypeStart,
-      json.arrowTypeEnd,
-      json.isDashed,
-      json.textCenter,
-      json.textEnd,
-      json.textStart,
-      json.id,
-      json.color
     );
-    inSock.addConnection(conn);
-    if (json.outSock !== null) {
-      outSock.addConnection(conn);
-    }
-    if (point !== null) {
-      foundConnection.connectedConnections.push(conn);
-    }
-    View.singleton.addConnection(conn);
-    return conn;
+    console.log(
+      "toJSON",
+      this.outSock.getAbsolutePosition().x,
+      this.outSock.getAbsolutePosition().y,
+      {
+        x: this.outSock.getAbsolutePosition().x,
+        y: this.outSock.getAbsolutePosition().y,
+      }
+    );
+    const toJSONConnection = {
+      source_node_id: this.inSock.parent.id,
+      source_connection_position: {
+        x: this.inSock.getAbsolutePosition().x,
+        y: this.inSock.getAbsolutePosition().y,
+      },
+      source_free_socket_id:
+        this.inSock instanceof FreeSocket ? this.inSock.id : null,
+      target_node_id: this.outSock.parent.id,
+      target_connection_position: {
+        x: this.outSock.getAbsolutePosition().x,
+        y: this.outSock.getAbsolutePosition().y,
+      },
+      edge: {
+        color: this.color,
+        arrowTypeSource: this.arrowTypeStart,
+        arrowTypeTarget: this.arrowTypeEnd,
+        lineStyle: this.isDashed ? "dashed" : "solid",
+        textStart: this.spanIn.textContent,
+        textCenter: this.spanCenter.textContent,
+        textEnd: this.spanOut.textContent,
+      },
+    };
+    console.log(toJSONConnection);
+    return toJSONConnection;
+  }
+
+  static fromJSON(json) {
+    // const n1 = getNode(parseFloat(json.inSock.id.replace("node-", ""), 10));
+    // const inSock = n1.sockets[json.inSock.type];
+    // var outSock = null;
+    // var point = null;
+    // var foundConnection = null;
+    // if (json.outSock !== null) {
+    //   const n2 = getNode(parseFloat(json.outSock.id.replace("node-", ""), 10));
+    //   outSock = n2.sockets[json.outSock.type];
+    // }
+    // if (json.outPoint !== null) {
+    //   const targetId = json.outPoint.parentId;
+    //   foundConnection = View.singleton.connections.find(
+    //     (connection) => connection.id === targetId
+    //   );
+    //   point = new ConnectingPoint(
+    //     json.outPoint.x,
+    //     json.outPoint.y,
+    //     foundConnection
+    //   );
+    // }
+    // const conn = new Connection(
+    //   inSock,
+    //   outSock,
+    //   point,
+    //   json.arrowTypeStart,
+    //   json.arrowTypeEnd,
+    //   json.isDashed,
+    //   json.textCenter,
+    //   json.textEnd,
+    //   json.textStart,
+    //   json.id,
+    //   json.color
+    // );
+    // inSock.addConnection(conn);
+    // if (json.outSock !== null) {
+    //   outSock.addConnection(conn);
+    // }
+    // if (point !== null) {
+    //   foundConnection.connectedConnections.push(conn);
+    // }
+    // View.singleton.addConnection(conn);
+    // return conn;
   }
 }

@@ -4,7 +4,9 @@ import { Selection } from "./selection.js";
 import { ContextMenu, ContextItem } from "./context.js";
 import { ArrowType } from "./enum/ArrowType.js";
 import { Authentication } from "./auth.js";
-import { renderPage } from "./navigation.js";
+import { renderPage } from "./router.js";
+import { Navbar } from "./navbar.js";
+import { Diagrams } from "./diagrams.js";
 
 !(function (items) {
   for (const key in items) {
@@ -12,17 +14,49 @@ import { renderPage } from "./navigation.js";
   }
 })({
   Node: Node,
-  getNode: function (id) {
-    return Node.nodes[id];
-  },
-  view: View.singleton,
-  selection: Selection.singleton,
+  // view: View.singleton,
+  // selection: Selection.singleton,
 });
 
 $(document).ready(function (e) {
-  renderPage("register");
-  const auth = new Authentication();
-  console.log("mew");
+  const hash = window.location.hash;
+  $(window).on("hashchange", function (e) {
+    renderPage();
+  });
+  const toggle = document.getElementById("navbar-toggle");
+  const menu = document.querySelector(".navbar-menu");
+
+  toggle.addEventListener("click", () => {
+    menu.classList.toggle("active");
+  });
+
+  const token = localStorage.getItem("token");
+  const isLoggedIn = token !== null;
+
+  if (hash) {
+    if ((hash === "#login" || hash === "#register") && isLoggedIn) {
+      window.location.hash = "#diagrams";
+    } else if ((hash !== "#login" || hash !== "#register") && !isLoggedIn) {
+      window.location.hash = "#login";
+    } else {
+      if (/^#diagram\/[a-zA-Z0-9\-]+$/.test(hash)) {
+        const id = window.location.hash.split("/").pop();
+        Diagrams.singleton.getDiagram(id, true);
+      } else {
+        renderPage();
+      }
+    }
+  } else {
+    if (isLoggedIn) {
+      window.location.hash = "#diagrams";
+    } else {
+      window.location.hash = "#login";
+    }
+  }
+
+  // window.history.pushState({}, "", "/register");
+  // renderPage("register");
+  // const auth = new Authentication();
   // window.contextMenu = new ContextMenu();
   // view.fromJSON({
   //   nodes: [

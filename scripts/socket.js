@@ -41,8 +41,9 @@ export class Socket {
 export class NodeSocket extends Socket {
   parent;
   #type;
-  constructor(el, parent = null, type = SocketType.Up) {
+  constructor(el, parent = null, type = SocketType.Up, id = "") {
     super(el);
+    this.id = id;
     this.parent = parent;
     this.#type = type;
     this.el.addEventListener("mousedown", this.down.bind(this));
