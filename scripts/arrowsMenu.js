@@ -251,6 +251,7 @@ export class ArrowsMenu {
 
     $(document.getElementById("color-input")).on("change", (e) => {
       this.#connection.changeColor(e.target.value);
+      this.#connection.patchUpdatingColorOfEdge();
     });
     this.dropdownMenu.forEach((element) => {
       $(element).on("click", (e) => {

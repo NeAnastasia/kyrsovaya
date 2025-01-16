@@ -2,6 +2,7 @@ import { Connector } from "./connector.js";
 import { SocketType } from "./enum/SocketType.js";
 import { View } from "./view.js";
 import { Point } from "./point.js";
+import { EdgeEndType } from "./enum/EdgeEndType.js";
 
 export class Socket {
   constructor(el) {
@@ -65,6 +66,19 @@ export class NodeSocket extends Socket {
       Connector.singleton.reconnect(this);
     }
   }
+  updateArrowsPositionInDB() {
+    for (const item of this.connections) {
+      const edge_end =
+        item.inSock === this ? EdgeEndType.Source : EdgeEndType.Target;
+      const pos = this.getAbsolutePosition();
+      Connector.singleton.reconnectEdgeToNode(
+        item.id,
+        edge_end,
+        this.parent.id,
+        pos
+      );
+    }
+  }
   getAbsolutePosition() {
     return new Point(
       this.parent.position.x + this.el.offsetLeft + this.el.offsetWidth / 2,
@@ -119,9 +133,11 @@ export class FreeSocket extends Socket {
     }
     this.isMouseDown = false;
     this.position = point;
+    const navbar = document.getElementById("navbar");
+    const navbarHeight = navbar ? navbar.offsetHeight : 0;
     this.position.set(
       point.x - View.singleton.position.x,
-      point.y - View.singleton.position.y
+      point.y - View.singleton.position.y - navbarHeight
     );
     this.setStyleTopLeft();
     this.el.setAttribute("id", this.id);

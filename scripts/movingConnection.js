@@ -16,7 +16,7 @@ export class MovingConnection {
     );
   }
   deleteCurrentConnection() {
-    this.currentConnection.destroy();
+    this.currentConnection.removeWithouthDeletingDataInDB();
     this.currentConnection = null;
   }
   checkIfCurrentConnectionIsSockPointConnection() {

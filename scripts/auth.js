@@ -37,7 +37,7 @@ export class Authentication {
 
     this.toggleForm.addEventListener("click", (e) => {
       navigate(e);
-      this.isLoginSwitch();
+      this.isLoginSet();
     });
   }
 

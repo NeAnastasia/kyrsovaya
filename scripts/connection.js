@@ -6,6 +6,8 @@ import { ArrowsCreatingPath } from "./arrowsCreatingPath.js";
 import { Point, ConnectingPoint } from "./point.js";
 import { MovingConnection } from "./movingConnection.js";
 import { FreeSocket, NodeSocket } from "./socket.js";
+import { EdgeEndType } from "./enum/EdgeEndType.js";
+import { BaseOperationsURL } from "./consts/baseUrl.js";
 
 export class Connection {
   static idCon = 0;
@@ -111,6 +113,10 @@ export class Connection {
     View.singleton.update();
   }
   destroy() {
+    this.removeWithouthDeletingDataInDB();
+    View.singleton.removeElementRequest(this.id);
+  }
+  removeWithouthDeletingDataInDB() {
     $(this.#el).remove();
     $(this.spanIn).remove();
     $(this.spanOut).remove();
@@ -131,13 +137,16 @@ export class Connection {
         $(this.lineEls[i]).attr("stroke-dasharray", 0);
       }
     }
+    this.#patchUpdatingLineTypeOfEdge();
   }
   changeArrowHeadEnd(type) {
     this.arrowTypeEnd = type;
+    this.#patchUpdatingArrowOfEdge(EdgeEndType.Target, type)
     this.update();
   }
   changeArrowHeadStart(type) {
     this.arrowTypeStart = type;
+    this.#patchUpdatingArrowOfEdge(EdgeEndType.Source, type)
     this.update();
   }
   reverseArrowHeads() {
@@ -166,6 +175,7 @@ export class Connection {
         this.arrowTypeEnd = ArrowType.HollowEnd;
         break;
     }
+    this.#patchReversingArrowHeads();
     this.update();
   }
   #changeColorArrowHead() {
@@ -344,9 +354,11 @@ export class Connection {
             View.singleton.showAlertForConnectingSockPointConnectionToConnectionBySock();
             MovingConnection.singleton.currentConnection = null;
           } else {
+            const navbar = document.getElementById("navbar");
+            const navbarHeight = navbar ? navbar.offsetHeight : 0;
             const point = new ConnectingPoint(
               e.pageX - View.singleton.position.x,
-              e.pageY - View.singleton.position.y,
+              e.pageY - View.singleton.position.y - navbarHeight,
               this
             );
             point.findNewPositionReturnIsHorizontal();
@@ -365,9 +377,11 @@ export class Connection {
     $(this.#lineClickEls).click((e) => {
       e.stopPropagation();
       if (Connector.singleton.currentSocket !== null) {
+        const navbar = document.getElementById("navbar");
+        const navbarHeight = navbar ? navbar.offsetHeight : 0;
         const point = new ConnectingPoint(
           e.pageX - View.singleton.position.x,
-          e.pageY - View.singleton.position.y,
+          e.pageY - View.singleton.position.y - navbarHeight,
           this
         );
         Connector.singleton.connectAssociation(point, this);
@@ -535,66 +549,45 @@ export class Connection {
     this.#arrowLines = [];
   }
 
-  // ### Add Edge connected to Node (requires JWT token)
-  // POST {{base_url}}/v1/diagram/{{diagram_id}}/edge/add/to_node
+  // ### Add Edge to Free Space (requires JWT token)
+  // POST {{base_url}}/v1/diagram/{{diagram_id}}/edge/add/to_free_space
   // Content-Type: application/json
   // Authorization: Bearer {{token}}
-
+  
   // {
-  //   "source_node_id": "0626e9ae-f106-41ec-a0dd-150939317841",
+  //   "source_node_id": "4be70edf-4f70-44e5-abfa-20980f3b20b6",
   //   "source_connection_position": {
   //     "x": 0,
   //     "y": -1
   //   },
-  //   "source_free_socket_id": null,
-  //   "target_node_id": "a68a8645-7eb7-4f46-ab07-2feae4554bae",
-  //   "target_connection_position": {
-  //     "x": 0,
-  //     "y": 1
+  //   "position": {
+  //     "x": 250,
+  //     "y": 300
   //   },
   //   "edge": {
-  //     "color": "#ff0000",
-  //     "arrowTypeSource": "Default",
-  //     "arrowTypeTarget": "None",
-  //     "lineStyle": "Solid",
+  //     "color": "#00ff00",
+  //     "arrowTypeSource": "None",
+  //     "arrowTypeTarget": "Arrow",
+  //     "lineStyle": "Dashed",
   //     "textStart": "Start",
-  //     "textCenter": "Center",
+  //     "textCenter": "Free Space",
   //     "textEnd": "End"
   //   }
   // }
-  // ### Update Line Style of Edge (new_line_style: dashed, solid)
-  // ### Update Arrow of Edge (new_arrow_type: none, default,filled,hollow, hollowRhombus,rhombus)
+
+  // toJSONConnectionWithNewFreeSocket() {
+  //   const toJSONConnection = this.toJSON();
+  //   toJSONConnection.position
+  // }
+
+  // toJSONConnectionWithExistingFreeSocket() {}
+  
   toJSON() {
-    console.log(
-      "toJSON",
-      this.inSock.getAbsolutePosition().x,
-      this.inSock.getAbsolutePosition(),
-      {
-        x: this.inSock.getAbsolutePosition().x,
-        y: this.inSock.getAbsolutePosition().y,
-      }
-    );
-    console.log(
-      "toJSON",
-      this.outSock.getAbsolutePosition().x,
-      this.outSock.getAbsolutePosition().y,
-      {
-        x: this.outSock.getAbsolutePosition().x,
-        y: this.outSock.getAbsolutePosition().y,
-      }
-    );
     const toJSONConnection = {
       source_node_id: this.inSock.parent.id,
       source_connection_position: {
         x: this.inSock.getAbsolutePosition().x,
         y: this.inSock.getAbsolutePosition().y,
-      },
-      source_free_socket_id:
-        this.inSock instanceof FreeSocket ? this.inSock.id : null,
-      target_node_id: this.outSock.parent.id,
-      target_connection_position: {
-        x: this.outSock.getAbsolutePosition().x,
-        y: this.outSock.getAbsolutePosition().y,
       },
       edge: {
         color: this.color,
@@ -606,52 +599,201 @@ export class Connection {
         textEnd: this.spanOut.textContent,
       },
     };
-    console.log(toJSONConnection);
+    if (this.outPoint !== null) {
+      toJSONConnection.TargetId = this.outPoint.connectionParent.id;
+      toJSONConnection.position = {
+        x: this.outPoint.x,
+        y: this.outPoint.y,
+      };
+    } else if (this.outSock !== null) {
+      toJSONConnection.target_node_id = this.outSock.parent.id;
+      const outSockPosition = this.outSock.getAbsolutePosition();
+      toJSONConnection.target_connection_position = {
+        x: outSockPosition.x,
+        y: outSockPosition.y,
+      };
+      toJSONConnection.source_free_socket_id = null;
+    }
     return toJSONConnection;
   }
 
-  static fromJSON(json) {
-    // const n1 = getNode(parseFloat(json.inSock.id.replace("node-", ""), 10));
-    // const inSock = n1.sockets[json.inSock.type];
-    // var outSock = null;
-    // var point = null;
-    // var foundConnection = null;
-    // if (json.outSock !== null) {
-    //   const n2 = getNode(parseFloat(json.outSock.id.replace("node-", ""), 10));
-    //   outSock = n2.sockets[json.outSock.type];
-    // }
-    // if (json.outPoint !== null) {
-    //   const targetId = json.outPoint.parentId;
-    //   foundConnection = View.singleton.connections.find(
-    //     (connection) => connection.id === targetId
-    //   );
-    //   point = new ConnectingPoint(
-    //     json.outPoint.x,
-    //     json.outPoint.y,
-    //     foundConnection
-    //   );
-    // }
-    // const conn = new Connection(
-    //   inSock,
-    //   outSock,
-    //   point,
-    //   json.arrowTypeStart,
-    //   json.arrowTypeEnd,
-    //   json.isDashed,
-    //   json.textCenter,
-    //   json.textEnd,
-    //   json.textStart,
-    //   json.id,
-    //   json.color
-    // );
-    // inSock.addConnection(conn);
-    // if (json.outSock !== null) {
-    //   outSock.addConnection(conn);
-    // }
-    // if (point !== null) {
-    //   foundConnection.connectedConnections.push(conn);
-    // }
-    // View.singleton.addConnection(conn);
-    // return conn;
+  static fromJSONNodeToNode(json) {
+    const sourceNode = View.singleton.getNodeById(
+      json.SourceEnd.ConnectedElementId
+    );
+    const targetNode = View.singleton.getNodeById(
+      json.TargetEnd.ConnectedElementId
+    );
+    const sourceSocket = sourceNode.getSocketByPosition(
+      json.SourceEnd.x,
+      json.SourceEnd.y
+    );
+    const targetSocket = targetNode.getSocketByPosition(
+      json.TargetEnd.x,
+      json.TargetEnd.y
+    );
+
+    const connection = Connection.fromJSON(json, sourceSocket, targetSocket);
+
+    targetSocket.addConnection(connection);
   }
+
+  static fromJSONNodeToEdge(json) {
+    let sourceNode, targetConnection, targetPoint, sourceSocket;
+    if (json.edgePointEnd === EdgeEndType.Target) {
+      sourceNode = View.singleton.getNodeById(
+        json.SourceEnd.ConnectedElementId
+      );
+      targetConnection = View.singleton.getConnectionById(
+        json.TargetEnd.ConnectedElementId
+      );
+      sourceSocket = sourceNode.getSocketByPosition(
+        json.SourceEnd.x,
+        json.SourceEnd.y
+      );
+      targetPoint = new ConnectingPoint(
+        json.TargetEnd.x,
+        json.TargetEnd.y,
+        targetConnection
+      );
+    } else {
+      sourceNode = View.singleton.getNodeById(
+        json.TargetEnd.ConnectedElementId
+      );
+      targetConnection = View.singleton.getConnectionById(
+        json.SourceEnd.ConnectedElementId
+      );
+      sourceSocket = sourceNode.getSocketByPosition(
+        json.TargetEnd.x,
+        json.TargetEnd.y
+      );
+      targetPoint = new ConnectingPoint(
+        json.SourceEnd.x,
+        json.SourceEnd.y,
+        targetConnection
+      );
+    }
+
+    const connection = Connection.fromJSON(
+      json,
+      sourceSocket,
+      null,
+      targetPoint
+    );
+    targetConnection.connectedConnections.push(connection);
+  }
+
+  static fromJSON(json, sourceSocket, targetSocket = null, targetPoint = null) {
+    const connection = new Connection(
+      sourceSocket,
+      targetSocket,
+      targetPoint,
+      json.SourceEnd.ArrowType,
+      json.TargetEnd.ArrowType,
+      json.LineStyle === "dashed",
+      json.Text,
+      json.TargetEnd.Text,
+      json.SourceEnd.Text,
+      json.Id,
+      json.Color
+    );
+
+    sourceSocket.addConnection(connection);
+    View.singleton.addConnection(connection);
+    return connection;
+  }
+
+  #patchReversingArrowHeads() {
+    //done
+    const id = window.location.hash.split("/").pop();
+    $.ajax({
+      url:
+        BaseOperationsURL + "/api/v1/diagrams/" + id + "/edge/reverse_arrows",
+      method: "PATCH",
+      contentType: "application/json",
+      headers: {
+        Authorization: "Bearer " + localStorage.getItem("token"),
+      },
+      data: JSON.stringify({
+        edge_id: this.id,
+      }),
+      success: (response) => {
+        console.log("Reversing arrowheads: ", response);
+      },
+      error: (jqXHR, textStatus, errorThrown) => {
+        console.error("Updating reverse arrowheads:", textStatus, errorThrown);
+      },
+    });
+  }
+
+  #patchUpdatingArrowOfEdge(edge_end, new_arrow_type) {
+    //done
+    const id = window.location.hash.split("/").pop();
+    $.ajax({
+      url: BaseOperationsURL + "/api/v1/diagrams/" + id + "/edge/arrow",
+      method: "PATCH",
+      contentType: "application/json",
+      headers: {
+        Authorization: "Bearer " + localStorage.getItem("token"),
+      },
+      data: JSON.stringify({
+        edge_id: this.id,
+        edge_end: edge_end,
+        new_arrow_type: new_arrow_type,
+      }),
+      success: (response) => {
+        console.log("Update arrow of edge: ", response);
+      },
+      error: (jqXHR, textStatus, errorThrown) => {
+        console.error("Updating arrow of edge:", textStatus, errorThrown);
+      },
+    });
+  }
+
+patchUpdatingColorOfEdge() {
+  //done
+  const id = window.location.hash.split("/").pop();
+  $.ajax({
+    url: BaseOperationsURL + "/api/v1/diagrams/" + id + "/element/color",
+    method: "PATCH",
+    contentType: "application/json",
+    headers: {
+      Authorization: "Bearer " + localStorage.getItem("token"),
+    },
+    data: JSON.stringify({
+      element_id: this.id,
+      color: this.color,
+    }),
+    success: (response) => {
+      console.log("Update update color of edge: ", response);
+    },
+    error: (jqXHR, textStatus, errorThrown) => {
+      console.error("Updating color of edge:", textStatus, errorThrown);
+    },
+  });
+}
+
+#patchUpdatingLineTypeOfEdge() {
+  //done
+  const line_style = this.isDashed ? "dashed" : "solid" 
+  const id = window.location.hash.split("/").pop();
+  $.ajax({
+    url: BaseOperationsURL + "/api/v1/diagrams/" + id + "/edge/line",
+    method: "PATCH",
+    contentType: "application/json",
+    headers: {
+      Authorization: "Bearer " + localStorage.getItem("token"),
+    },
+    data: JSON.stringify({
+      edge_id: this.id,
+      new_line_style: line_style,
+    }),
+    success: (response) => {
+      console.log("Update line type of edge: ", response);
+    },
+    error: (jqXHR, textStatus, errorThrown) => {
+      console.error("Updating line type of edge:", textStatus, errorThrown);
+    },
+  });
+}
 }

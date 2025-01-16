@@ -7,7 +7,8 @@ export class Navbar {
   }
   
   login() {
-    this.isLoggedIn = true;
+    const token = localStorage.getItem("token");
+    this.isLoggedIn = token !== null;
     this.renderNav();
   }
 

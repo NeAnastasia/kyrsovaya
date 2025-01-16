@@ -1,6 +1,7 @@
 import { BaseStorageURL } from "./consts/baseUrl.js";
 import { renderPage } from "./router.js";
 import { View } from "./view.js";
+import { WebSocketConnection } from "./webSocket/webSocket.js";
 
 export class Diagrams {
   static singleton = new Diagrams();
@@ -20,12 +21,7 @@ export class Diagrams {
     const errorMessage = document.getElementById("errorMessage");
 
     const diagramName = textInput.value.trim();
-    let accessLvl = "";
-    accessOptions.forEach((option) => {
-      if (option.checked) {
-        accessLvl = option.value;
-      }
-    });
+    let accessLvl = "all";
 
     if (diagramName === "") {
       errorMessage.innerHTML = "Введите название диаграммы";
@@ -49,7 +45,6 @@ export class Diagrams {
           Диаграмм не найдено, создайте новую
           </div>`;
         } else {
-          console.log(response);
           const diagramItems = response
             .map(
               (item) => `
@@ -72,7 +67,7 @@ export class Diagrams {
             button.on("click", () => {
               const id = button.data("id"); 
               if (id !== undefined) {
-                this.getDiagram(id);
+                window.location.hash = "#diagram/" + id;
               } else {
                 console.error("ID is undefined");
               }
@@ -121,12 +116,14 @@ export class Diagrams {
         Authorization: "Bearer " + localStorage.getItem("token"),
       },
       success: (response) => {
-        window.location.hash = "#diagram/" + id;
+        console.log("Get diagram: ", response);
         View.singleton.JSONInfo = response;
         if(isAtStart) {
           renderPage(true);
-        }
-        console.log("Get diagram: ", response);
+        } else {
+          View.singleton.fromJSON();
+        }   
+        WebSocketConnection.singleton.connect();    
       },
       error: (jqXHR, textStatus, errorThrown) => {
         this.errorMessage.innerHTML = "Не удалось получить диаграмму";

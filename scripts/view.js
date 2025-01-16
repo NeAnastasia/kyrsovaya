@@ -5,6 +5,8 @@ import { Selection } from "./selection.js";
 import { TextMenu } from "./textMenu.js";
 import { FreeSocket } from "./socket.js";
 import { Point } from "./point.js";
+import { BaseOperationsURL } from "./consts/baseUrl.js";
+import { EdgeEndType } from "./enum/EdgeEndType.js";
 
 export class View {
   static singleton = new View();
@@ -29,7 +31,7 @@ export class View {
       if (e.key === "Delete") {
         for (const node of Selection.singleton.els) {
           this.#removeNode(node);
-          node.removeElementRequest();
+          this.removeElementRequest(node.id);
         }
         Selection.singleton.clear();
       }
@@ -210,8 +212,11 @@ export class View {
     }
     return ret;
   }
-  findNodeById(id) {
-    return this.nodes.find((node) => node.id === id) || null; 
+  getNodeById(id) {
+    return this.nodes.find((node) => node.id === id) || null;
+  }
+  getConnectionById(id) {
+    return this.connections.find((connection) => connection.id === id) || null;
   }
   fromJSON() {
     if (this.JSONInfo !== null) {
@@ -222,11 +227,43 @@ export class View {
         .filter((key) => diagramStructure[key].ElementType === "Node")
         .map((key) => Node.fromJSON(diagramStructure[key]));
 
-      const edges = Object.keys(diagramStructure)
-        .filter((key) => diagramStructure[key].ElementType === "Edge")
-        .map((key) => diagramStructure[key]);
+      const edges = Object.keys(diagramStructure).filter(
+        (key) => diagramStructure[key].ElementType === "Edge"
+      );
 
-      console.log(edges);
+      const assotiationEdges = [];
+      const nodeToNodeEdges = [];
+
+      edges.forEach((edge) => {
+        if (
+          diagramStructure[edge].SourceEnd.ConnectedElementId &&
+          edges.includes(diagramStructure[edge].SourceEnd.ConnectedElementId)
+        ) {
+          diagramStructure[edge].edgePointEnd = EdgeEndType.Source;
+          assotiationEdges.push(diagramStructure[edge]);
+        } else if (
+          diagramStructure[edge].TargetEnd.ConnectedElementId &&
+          edges.includes(diagramStructure[edge].TargetEnd.ConnectedElementId)
+        ) {
+          diagramStructure[edge].edgePointEnd = EdgeEndType.Target;
+          assotiationEdges.push(diagramStructure[edge]);
+        } else {
+          nodeToNodeEdges.push(diagramStructure[edge]);
+        }
+      });
+
+      nodeToNodeEdges.forEach((edge) => {
+        Connection.fromJSONNodeToNode(edge);
+      });
+
+      assotiationEdges.forEach((edge) => {
+        Connection.fromJSONNodeToEdge(edge);
+      });
+
+      // Object.keys(diagramStructure).map((key) =>
+      //   this.removeElementRequest(key)
+      // );
+
       // Object.keys(diagramStructure).forEach((key) => {
       //   const value = diagramStructure[key];
       //   if (value.ElementType === "Node") {
@@ -263,5 +300,24 @@ export class View {
       this.#removeConnection(c);
     }
     window.dispatchEvent(new Event("viewupdate"));
+  }
+  removeElementRequest(id) {
+    //done
+    const diagramId = window.location.hash.split("/").pop();
+    $.ajax({
+      url: BaseOperationsURL + "/v1/diagrams/" + diagramId + "/element/remove",
+      method: "DELETE",
+      contentType: "application/json",
+      headers: {
+        Authorization: "Bearer " + localStorage.getItem("token"),
+      },
+      data: JSON.stringify({ element_id: id }),
+      success: (response) => {
+        console.log("Deleting element", response);
+      },
+      error: (jqXHR, textStatus, errorThrown) => {
+        console.error("Removing element failed:", textStatus, errorThrown);
+      },
+    });
   }
 }

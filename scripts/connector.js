@@ -4,6 +4,9 @@ import { View } from "./view.js";
 import { ArrowType } from "./enum/ArrowType.js";
 import { FreeSocket } from "./socket.js";
 import { BaseOperationsURL } from "./consts/baseUrl.js";
+import { EdgeEndType } from "./enum/EdgeEndType.js";
+import { OperationType } from "./enum/OperationType.js";
+import { WebSocketConnection } from "./webSocket/webSocket.js";
 
 export class Connector {
   static singleton = new Connector();
@@ -44,6 +47,19 @@ export class Connector {
       conn.reverseArrowHeads();
       conn.spanIn.textContent = oldConnection.spanOut.textContent;
       conn.spanOut.textContent = oldConnection.spanIn.textContent;
+      this.reconnectEdgeToEdge(
+        conn.id,
+        EdgeEndType.Source,
+        targetConnection.id,
+        point
+      );
+    } else if (oldConnection.inSock === this.currentSocket) {
+      this.reconnectEdgeToEdge(
+        conn.id,
+        EdgeEndType.Target,
+        targetConnection.id,
+        point
+      );
     }
     if (oldConnection.isArrowsReversed) {
       conn.unswapArrowHeads();
@@ -68,6 +84,12 @@ export class Connector {
         oldConnection.id,
         oldConnection.color
       );
+      this.reconnectEdgeToNode(
+        conn.id,
+        "target",
+        sock.parent.id,
+        sock.getAbsolutePosition()
+      );
     } else {
       conn = new Connection(
         sock,
@@ -81,6 +103,12 @@ export class Connector {
         oldConnection.spanIn.textContent,
         oldConnection.id,
         oldConnection.color
+      );
+      this.reconnectEdgeToNode(
+        conn.id,
+        EdgeEndType.Source,
+        sock.parent.id,
+        sock.getAbsolutePosition()
       );
     }
     if (oldConnection.isArrowsReversed) {
@@ -109,6 +137,7 @@ export class Connector {
       );
       targetConnection.connectedConnections.push(conn);
       this.#connect(conn);
+      this.addEdge(conn, OperationType.AddEdgeToEdge, conn);
     }
   }
   connectSockets(sock) {
@@ -123,7 +152,7 @@ export class Connector {
       const conn = new Connection(this.currentSocket, sock);
       sock.addConnection(conn);
       this.#connect(conn);
-      this.addEdgeToNode(conn);
+      this.addEdge(conn, OperationType.AddEdgeToNode, conn);
     }
   }
   #connect(conn) {
@@ -134,37 +163,23 @@ export class Connector {
     selection.removeAllRanges();
   }
 
-  // ### Add Edge connected to Node (requires JWT token)
-  // POST {{base_url}}/v1/diagram/{{diagram_id}}/edge/add/to_node
-  // Content-Type: application/json
-  // Authorization: Bearer {{token}}
-
-  // {
-  //   "source_node_id": "0626e9ae-f106-41ec-a0dd-150939317841",
-  //   "source_connection_position": {
-  //     "x": 0,
-  //     "y": -1
-  //   },
-  //   "source_free_socket_id": null,
-  //   "target_node_id": "a68a8645-7eb7-4f46-ab07-2feae4554bae",
-  //   "target_connection_position": {
-  //     "x": 0,
-  //     "y": 1
-  //   },
-  //   "edge": {
-  //     "color": "#ff0000",
-  //     "arrowTypeSource": "Default",
-  //     "arrowTypeTarget": "None",
-  //     "lineStyle": "Solid",
-  //     "textStart": "Start",
-  //     "textCenter": "Center",
-  //     "textEnd": "End"
-  //   }
-  // }
-  addEdgeToNode(connection) {
-    const id = window.location.hash.split("/").pop();
+  addEdge(connection, operationType) {
+    const diagramId = window.location.hash.split("/").pop();
+    let url;
+    const timestamp = Date.now();
+    WebSocketConnection.singleton.sentRequests.push({
+      timestamp: timestamp,
+      operation: operationType,
+    });
+    if (operationType === OperationType.AddEdgeToEdge) {
+      url =
+        BaseOperationsURL + "/v1/diagram/" + diagramId + "/edge/add/to_edge";
+    } else if (operationType === OperationType.AddEdgeToNode) {
+      url =
+        BaseOperationsURL + "/v1/diagram/" + diagramId + "/edge/add/to_node";
+    }
     $.ajax({
-      url: BaseOperationsURL + "/v1/diagram/" + id + "/edge/add/to_node",
+      url: url,
       method: "POST",
       contentType: "application/json",
       headers: {
@@ -173,7 +188,98 @@ export class Connector {
       data: JSON.stringify(connection.toJSON()),
       success: (response) => {
         console.log("Add edge to node: ", response);
-        console.log(connection.toJSON())
+        WebSocketConnection.singleton.removeRequest(
+          timestamp,
+          operationType,
+          response.operationId,
+          connection
+        );
+      },
+      error: (jqXHR, textStatus, errorThrown) => {
+        console.error("Adding edge to node failed:", textStatus, errorThrown);
+      },
+    });
+  }
+
+  reconnectEdgeToNode(
+    edge_id,
+    edge_end,
+    target_node_id,
+    target_connection_position
+  ) {
+    //done
+    const diagramId = window.location.hash.split("/").pop();
+    $.ajax({
+      url:
+        BaseOperationsURL +
+        "/v1/diagram/" +
+        diagramId +
+        "/edge/connect/to_node",
+      method: "POST",
+      contentType: "application/json",
+      headers: {
+        Authorization: "Bearer " + localStorage.getItem("token"),
+      },
+      data: JSON.stringify({
+        edge_id: edge_id,
+        edge_end: edge_end,
+        target_node_id: target_node_id,
+        target_connection_position: {
+          x: target_connection_position.x,
+          y: target_connection_position.y,
+        },
+      }),
+      success: (response) => {
+        console.log("Reconnect edge to node: ", response);
+      },
+      error: (jqXHR, textStatus, errorThrown) => {
+        console.error(
+          "Reconnecting edge to node failed:",
+          textStatus,
+          errorThrown
+        );
+      },
+    });
+  }
+
+  //   ### Connect Edge to Edge (requires JWT token)
+  // POST {{base_url}}/v1/diagram/{{diagram_id}}/edge/connect/to_edge
+  // Content-Type: application/json
+  // Authorization: Bearer {{token}}
+
+  // {
+  //   "edge_id": "45e6a994-068f-4877-90bb-ea20e2ff135f",
+  //   "edge_end": "target",
+  //   "target_edge_id": "7438452a-d426-4c63-96c7-ad730156b93d",
+  //   "position": {
+  //     "x": 4000,
+  //     "y": 20
+  //   }
+  // }
+  reconnectEdgeToEdge(edge_id, edge_end, target_edge_id, position) {
+    const diagramId = window.location.hash.split("/").pop();
+    $.ajax({
+      url:
+        BaseOperationsURL +
+        "/v1/diagram/" +
+        diagramId +
+        "/edge/connect/to_edge",
+      method: "POST",
+      contentType: "application/json",
+      headers: {
+        Authorization: "Bearer " + localStorage.getItem("token"),
+      },
+      data: JSON.stringify({
+        edge_id: edge_id,
+        edge_end: edge_end,
+        target_edge_id: target_edge_id,
+        position: {
+          x: position.x,
+          y: position.y,
+        },
+      }),
+      success: (response) => {
+        console.log("reconnectEdgeToEdge: ", response);
       },
       error: (jqXHR, textStatus, errorThrown) => {
         console.error("Adding edge to node failed:", textStatus, errorThrown);

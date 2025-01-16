@@ -7,6 +7,8 @@ import { NodeType } from "./enum/NodeType.js";
 import { SocketType } from "./enum/SocketType.js";
 import { Point } from "./point.js";
 import { BaseOperationsURL } from "./consts/baseUrl.js";
+import { WebSocketConnection } from "./webSocket/webSocket.js";
+import { OperationType } from "./enum/OperationType.js";
 
 export class Node {
   static idC = 0;
@@ -53,8 +55,6 @@ export class Node {
       this.#onNodeReleased.bind(this),
       this.#onNodeMove.bind(this)
     );
-    const navbar = document.getElementById("navbar");
-    const navbarHeight = navbar ? navbar.offsetHeight : 0;
     this.position = new Point(position.x, position.y);
     this.#opos = null;
     this.#pressType = 0;
@@ -260,7 +260,7 @@ export class Node {
     $(this.el).remove();
   }
   remove() {
-    this.removeElementRequest();
+    View.singleton.removeElementRequest(this.id);
     this.removeHTMLElement();
   }
   destroy() {
@@ -274,7 +274,7 @@ export class Node {
     this.updateTextOfElementRequest("label", this.#name);
     this.update();
   }
-  findSocketByPosition(x, y) {
+  getSocketByPosition(x, y) {
     return (
       Object.values(this.sockets).find((socket) => {
         const position = socket.getAbsolutePosition(); // Получаем позицию сокета
@@ -306,6 +306,9 @@ export class Node {
     });
   }
   #moveElementRequest() {
+    for (const key in this.sockets) {
+      this.sockets[key].updateArrowsPositionInDB();
+    }
     //done
     const id = window.location.hash.split("/").pop();
     $.ajax({
@@ -355,26 +358,12 @@ export class Node {
       },
     });
   }
-  removeElementRequest() {
-    //done
-    const id = window.location.hash.split("/").pop();
-    $.ajax({
-      url: BaseOperationsURL + "/v1/diagrams/" + id + "/element/remove",
-      method: "DELETE",
-      contentType: "application/json",
-      headers: {
-        Authorization: "Bearer " + localStorage.getItem("token"),
-      },
-      data: JSON.stringify({ element_id: this.id }),
-      success: (response) => {
-        console.log("Deleting element", response);
-      },
-      error: (jqXHR, textStatus, errorThrown) => {
-        console.error("Removing element failed:", textStatus, errorThrown);
-      },
-    });
-  }
   addElementRequest() {
+    const timestamp = Date.now()
+    WebSocketConnection.singleton.sentRequests.push({
+      timestamp: timestamp,
+      operation: OperationType.AddNode,
+    });
     //done
     const id = window.location.hash.split("/").pop();
     $.ajax({
@@ -387,11 +376,17 @@ export class Node {
       data: JSON.stringify(this.toJSON()),
       success: (response) => {
         console.log("Add element", response);
+        WebSocketConnection.singleton.removeRequest(timestamp, OperationType.AddNode, response.operationId, this)
+        //location.reload();
       },
       error: (jqXHR, textStatus, errorThrown) => {
         console.error("Adding element failed:", textStatus, errorThrown);
       },
     });
+  }
+  static fromJSONofAnotherUser(json) {
+    const node = this.fromJSON(json);
+    node.id = json.Id;
   }
   static fromJSON(json) {
     const tname = json.NodeType || NodeType.Default;

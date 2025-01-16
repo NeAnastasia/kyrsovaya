@@ -2,6 +2,7 @@ import { Authentication } from "./auth.js";
 import { Diagrams } from "./diagrams.js";
 import { View } from "./view.js";
 import { ContextMenu, ContextItem } from "./context.js";
+import { Navbar } from "./navbar.js";
 
 export function renderPage(isDiagramGot = false) {
   let page = window.location.hash.replace("#", "") || "home"; // Получаем имя страницы
@@ -87,19 +88,15 @@ export function renderPage(isDiagramGot = false) {
     <div id="errorMessage" class="error"></div>
       <div class="new-diagrams-container">
         <input type="text" id="textInput" placeholder="Введите название" class="text-input">
-        <div class="access-options">
-            <label>
-                <input type="radio" name="access" value="All" checked>
-                Открыт всем
-            </label>
-            <label>
-                <input type="radio" name="access" value="Private">
-                Только для меня
-            </label>
-        </div>
         <button id="createButton" class="create-button">Создать</button>
     </div>`;
       Diagrams.singleton.defineElements();
+      break;
+    case "logout":
+      localStorage.clear();
+      Navbar.singleton.login();
+      //Authentication.singleton.isLoginSet(false);
+      window.location.hash = "login";
       break;
     default:
       content.innerHTML = "<h1>404 Not Found</h1>";
