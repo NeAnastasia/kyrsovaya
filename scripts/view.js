@@ -251,7 +251,6 @@ export class View {
     return this.freeSockets.find((socket) => socket.id === id) || null;
   }
   removeElementById(id) {
-    console.log(id)
     const node = this.getNodeById(id);
     if (node) {
       node.removeHTMLElement();
@@ -270,7 +269,6 @@ export class View {
       window.dispatchEvent(new Event("viewupdate"));
       return;
     }
-    console.log("well...")
     return null;
   }
   fromJSON() {

@@ -215,7 +215,6 @@ export class FreeSocket extends Socket {
   static fromJSONofAnotherUser(json) {
     const socket = FreeSocket.fromJSON(json);
     socket.id = json.Id;
-    console.log(socket)
   }
 
   static fromJSON(json) {

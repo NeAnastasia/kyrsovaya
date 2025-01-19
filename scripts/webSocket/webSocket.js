@@ -209,9 +209,8 @@ export class WebSocketConnection {
         break;
       case OperationType.UpdateNodeText:
         const updatedNode = View.singleton.getNodeById(dataOfEvent.payload.nodeId);
-        console.log(updatedNode, dataOfEvent.payload, dataOfEvent.payload.nodeFieldType);
         if (dataOfEvent.payload.nodeFieldType === NodeFieldType.Label) {
-          updatedNode.label = dataOfEvent.payload.text;
+          updatedNode.name = dataOfEvent.payload.text;
         } else if (
           dataOfEvent.payload.nodeFieldType === NodeFieldType.Content1
         ) {

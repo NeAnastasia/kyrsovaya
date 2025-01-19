@@ -18,9 +18,7 @@ export class Node {
   #ptype;
   #opos;
   #pressType;
-  #name;
   #contentEls;
-  label;
   #moveRequestCounter;
   static deductTemplate(type) {
     switch (type) {
@@ -125,7 +123,7 @@ export class Node {
       ),
     };
     this.el.classList.add(this.type);
-    this.#name = name;
+    this.name = name;
     this.#contentEls = $(this.el).find(".node-text-content");
     this.label = $(this.el).find(".node-text")[0];
     this.label.addEventListener("keydown", (e) => {
@@ -134,7 +132,7 @@ export class Node {
         e.stopPropagation();
       }
     });
-    this.label.innerHTML = this.#name;
+    this.label.innerHTML = this.name;
     const allTextElements = $(this.label).add(this.#contentEls);
     $(allTextElements).on("dblclick", (e) => {
       this.isDblClick = true;
@@ -161,7 +159,6 @@ export class Node {
     });
     $(allTextElements).on("focusout", (e) => {
       this.isDblClick = false;
-      this.#onRename(e);
       $(e.target).attr("contenteditable", false);
       window.dispatchEvent(new Event("viewupdate"));
     });
@@ -255,9 +252,9 @@ export class Node {
       this.#ptype = this.type;
       this.el.classList.add(this.type);
     }
-    if (this.label.innerHTML !== this.#name) {
+    if (this.label.innerHTML !== this.name) {
       console.log(this.label, this.label.innerHTML )
-      this.label.innerHTML = this.#name;
+      this.label.innerHTML = this.name;
     }
   }
   removeHTMLElement() {
@@ -279,9 +276,9 @@ export class Node {
     this.update();
   }
   #onRename(e) {
-    this.#name = this.label.innerHTML;
+    this.name = this.label.innerHTML;
     console.log(this.label)
-    this.updateTextOfElementRequest("label", this.#name);
+    this.updateTextOfElementRequest("label", this.name);
     this.update();
   }
   getSocketByPosition(x, y) {
@@ -602,6 +599,7 @@ class ObjectNode extends Node {
     }
 
     if (this.textContentEl.html() !== this.textContent1) {
+      console.log("A")
       this.textContentEl.html(this.textContent1);
     }
     console.log(this.textContentEl.html(), this.textContent1)
@@ -682,6 +680,13 @@ class ClassNode extends Node {
 
     if (!this.svgArea) {
       return;
+    }
+
+    if (this.textContentEl1.html() !== this.textContent1) {
+      this.textContentEl1.html(this.textContent1);
+    }
+    if (this.textContentEl2.html() !== this.textContent2) {
+      this.textContentEl2.html(this.textContent2);
     }
 
     this.rect.attr("x", "0").attr({
