@@ -20,7 +20,7 @@ export class Node {
   #pressType;
   #name;
   #contentEls;
-  #label;
+  label;
   #moveRequestCounter;
   static deductTemplate(type) {
     switch (type) {
@@ -127,15 +127,15 @@ export class Node {
     this.el.classList.add(this.type);
     this.#name = name;
     this.#contentEls = $(this.el).find(".node-text-content");
-    this.#label = $(this.el).find(".node-text")[0];
-    this.#label.addEventListener("keydown", (e) => {
+    this.label = $(this.el).find(".node-text")[0];
+    this.label.addEventListener("keydown", (e) => {
       if (e.keyCode == 13) {
         e.preventDefault();
         e.stopPropagation();
       }
     });
-    this.#label.innerHTML = this.#name;
-    const allTextElements = $(this.#label).add(this.#contentEls);
+    this.label.innerHTML = this.#name;
+    const allTextElements = $(this.label).add(this.#contentEls);
     $(allTextElements).on("dblclick", (e) => {
       this.isDblClick = true;
       let target;
@@ -165,7 +165,7 @@ export class Node {
       $(e.target).attr("contenteditable", false);
       window.dispatchEvent(new Event("viewupdate"));
     });
-    $(this.#label).on("input", (e) => {
+    $(this.label).on("input", (e) => {
       this.#onRename(e);
     });
     window.addEventListener("mousemove", this.#mouseMoveRaw.bind(this));
@@ -255,6 +255,10 @@ export class Node {
       this.#ptype = this.type;
       this.el.classList.add(this.type);
     }
+    if (this.label.innerHTML !== this.#name) {
+      console.log(this.label, this.label.innerHTML )
+      this.label.innerHTML = this.#name;
+    }
   }
   removeHTMLElement() {
     $(this.el).remove();
@@ -269,8 +273,14 @@ export class Node {
     }
     window.dispatchEvent(new Event("viewupdate"));
   }
+  scaleNode(width, height) {
+    this.#width = width;
+    this.#height = height;
+    this.update();
+  }
   #onRename(e) {
-    this.#name = this.#label.innerHTML;
+    this.#name = this.label.innerHTML;
+    console.log(this.label)
     this.updateTextOfElementRequest("label", this.#name);
     this.update();
   }
@@ -283,6 +293,12 @@ export class Node {
     ); // Возвращаем найденный сокет или null, если не найден
   }
   updateTextOfElementRequest(field_type, text) {
+    console.log("Update text: ", field_type, text);
+    const timestamp = Date.now()
+    WebSocketConnection.singleton.sentRequests.push({
+      timestamp: timestamp,
+      operation: OperationType.UpdateNodeText,
+    });
     //done
     const id = window.location.hash.split("/").pop();
     $.ajax({
@@ -299,6 +315,12 @@ export class Node {
       }),
       success: (response) => {
         console.log("Update text: ", response);
+        WebSocketConnection.singleton.removeRequest(
+          timestamp,
+          OperationType.UpdateNodeText,
+          response.operationId,
+          this
+        );
       },
       error: (jqXHR, textStatus, errorThrown) => {
         console.error("Updating text failed:", textStatus, errorThrown);
@@ -309,32 +331,15 @@ export class Node {
     for (const key in this.sockets) {
       this.sockets[key].updateArrowsPositionInDB();
     }
-    //done
-    const id = window.location.hash.split("/").pop();
-    $.ajax({
-      url: BaseOperationsURL + "/api/v1/diagrams/" + id + "/element/move",
-      method: "PATCH",
-      contentType: "application/json",
-      headers: {
-        Authorization: "Bearer " + localStorage.getItem("token"),
-      },
-      data: JSON.stringify({
-        element_id: this.id,
-        new_position: {
-          x: this.position.x,
-          y: this.position.y,
-        },
-      }),
-      success: (response) => {
-        console.log("Move element: ", response);
-      },
-      error: (jqXHR, textStatus, errorThrown) => {
-        console.error("Moving element failed:", textStatus, errorThrown);
-      },
-    });
+    View.singleton.moveAnyElementRequest(this.id, this.position);
   }
   #scaleElementRequest() {
     //done
+    const timestamp = Date.now()
+    WebSocketConnection.singleton.sentRequests.push({
+      timestamp: timestamp,
+      operation: OperationType.Scale,
+    });
     const id = window.location.hash.split("/").pop();
     $.ajax({
       url: BaseOperationsURL + "/api/v1/diagrams/" + id + "/node/scale",
@@ -352,6 +357,12 @@ export class Node {
       }),
       success: (response) => {
         console.log("Scale element: ", response);
+        WebSocketConnection.singleton.removeRequest(
+          timestamp,
+          OperationType.Scale,
+          response.operationId,
+          this
+        );
       },
       error: (jqXHR, textStatus, errorThrown) => {
         console.error("Updating scale failed:", textStatus, errorThrown);
@@ -387,6 +398,7 @@ export class Node {
   static fromJSONofAnotherUser(json) {
     const node = this.fromJSON(json);
     node.id = json.Id;
+    window.dispatchEvent(new Event("viewupdate"));
   }
   static fromJSON(json) {
     const tname = json.NodeType || NodeType.Default;
@@ -447,14 +459,14 @@ export class Node {
       size: { width: this.#width, height: this.#height },
       node_type: this.type,
       color: "#FF00FF",
-      label: this.#label.innerHTML,
+      label: this.label.innerHTML,
     };
   }
   get textWidth() {
-    return Math.max(this.#label.clientWidth, 40);
+    return Math.max(this.label.clientWidth, 40);
   }
   get textHeight() {
-    return Math.max(this.#label.clientHeight, 40);
+    return Math.max(this.label.clientHeight, 40);
   }
   get width() {
     return this.#width;
@@ -549,12 +561,12 @@ class ObjectNode extends Node {
       `<line></line><line></line><line></line><line></line><line></line>`
     );
     this.lines = this.svgArea.find("line");
-    this.textContent = content || "";
+    this.textContent1 = content || "";
     this.textContentEl = $(this.el).find(".node-text-content");
-    this.textContentEl.html(this.textContent);
+    this.textContentEl.html(this.textContent1);
     this.textContentEl.on("input", () => {
-      this.textContent = this.textContentEl.html();
-      this.updateTextOfElementRequest("content1", this.textContent);
+      this.textContent1 = this.textContentEl.html();
+      this.updateTextOfElementRequest("content1", this.textContent1);
       window.dispatchEvent(new Event("viewupdate"));
     });
     this.update();
@@ -576,10 +588,10 @@ class ObjectNode extends Node {
     return this.contentHeight + this.textHeight;
   }
   get content() {
-    return this.textContent;
+    return this.textContent1;
   }
   set content(v) {
-    this.textContent = v;
+    this.textContent1 = v;
     this.update();
   }
 
@@ -589,9 +601,10 @@ class ObjectNode extends Node {
       return;
     }
 
-    if (this.textContentEl.html() !== this.textContent) {
-      this.textContentEl.html(this.textContent);
+    if (this.textContentEl.html() !== this.textContent1) {
+      this.textContentEl.html(this.textContent1);
     }
+    console.log(this.textContentEl.html(), this.textContent1)
     $(this.lines[0])
       .attr("x1", "0")
       .attr("x2", this.width)
@@ -620,7 +633,7 @@ class ObjectNode extends Node {
   }
   toJSON() {
     const json = super.toJSON();
-    json.content1 = this.textContent;
+    json.content1 = this.textContent1;
     return json;
   }
 }

@@ -3,6 +3,9 @@ import { SocketType } from "./enum/SocketType.js";
 import { View } from "./view.js";
 import { Point } from "./point.js";
 import { EdgeEndType } from "./enum/EdgeEndType.js";
+import { BaseOperationsURL } from "./consts/baseUrl.js";
+import { OperationType } from "./enum/OperationType.js";
+import { WebSocketConnection } from "./webSocket/webSocket.js";
 
 export class Socket {
   constructor(el) {
@@ -57,13 +60,13 @@ export class NodeSocket extends Socket {
       Connector.singleton.currentSocket = this;
       console.log("grabbed");
     } else {
-      Connector.singleton.connectSockets(this);
+      Connector.singleton.connectSocketsAsThisUser(this);
       console.log("connected");
     }
   }
   up(e) {
     if (View.singleton.connectionIsMoving) {
-      Connector.singleton.reconnect(this);
+      Connector.singleton.reconnectFromThisUser(this);
     }
   }
   updateArrowsPositionInDB() {
@@ -117,6 +120,7 @@ export class NodeSocket extends Socket {
 
 export class FreeSocket extends Socket {
   static idSockNum = 0;
+  #moveRequestCounter;
   constructor(point, id = "") {
     const el = document.createElement("div");
     $(el).addClass("node-connection-socket");
@@ -132,12 +136,11 @@ export class FreeSocket extends Socket {
       FreeSocket.idSockNum = FreeSocket.idSockNum + 1;
     }
     this.isMouseDown = false;
+    this.#moveRequestCounter = 0;
     this.position = point;
-    const navbar = document.getElementById("navbar");
-    const navbarHeight = navbar ? navbar.offsetHeight : 0;
     this.position.set(
       point.x - View.singleton.position.x,
-      point.y - View.singleton.position.y - navbarHeight
+      point.y - View.singleton.position.y
     );
     this.setStyleTopLeft();
     this.el.setAttribute("id", this.id);
@@ -149,6 +152,14 @@ export class FreeSocket extends Socket {
   removeConnection(conn) {
     super.removeConnection(conn);
     this.checkIfNeedsToBeDeleted();
+  }
+  destroy() {
+    super.destroy();
+    $(this.el).remove();
+  }
+  destroyWithRemovingFromDB() {
+    this.destroy();
+    View.singleton.removeElementRequest(this.id);
   }
   checkIfNeedsToBeDeleted() {
     if (this.connections.length == 0) {
@@ -168,22 +179,92 @@ export class FreeSocket extends Socket {
     for (var i = 0; i < this.connections.length; i++) {
       this.connections[i].enableClickEndEls();
     }
+    if (this.#moveRequestCounter !== 100) {
+      View.singleton.moveAnyElementRequest(this.id, this.position);
+      this.#moveRequestCounter = 0;
+    }
     View.singleton.isMouseDownOnFreeSocket = false;
   }
   move(e) {
     if (View.singleton.isMouseDownOnFreeSocket) {
+      const navbar = document.getElementById("navbar");
+      const navbarHeight = navbar ? navbar.offsetHeight : 0;
       this.position.set(
         e.pageX - View.singleton.position.x,
-        e.pageY - View.singleton.position.y
+        e.pageY - View.singleton.position.y - navbarHeight
       );
       this.setStyleTopLeft();
       for (var i = 0; i < this.connections.length; i++) {
         this.connections[i].update();
+      }
+      this.#moveRequestCounter++;
+      if (this.#moveRequestCounter >= 100) {
+        View.singleton.moveAnyElementRequest(this.id, this.position);
+        this.#moveRequestCounter = 0;
       }
     }
   }
   setStyleTopLeft() {
     this.el.style.top = this.position.y - this.el.offsetHeight / 2 + "px";
     this.el.style.left = this.position.x - this.el.offsetWidth / 2 + "px";
+  }
+  //   ### Add Socket to Diagram (requires JWT token)
+  // POST {{base_url}}/v1/diagram/{{diagram_id}}/socket/add
+  // Content-Type: application/json
+  // Authorization: Bearer {{token}}
+
+  // {
+  //   "position": {
+  //     "x": 50.0,
+  //     "y": 75.25
+  //   }
+  // }
+  static fromJSONofAnotherUser(json) {
+    const socket = FreeSocket.fromJSON(json);
+    socket.id = json.id;
+    console.log(socket)
+  }
+
+  static fromJSON(json) {
+    const socket = new FreeSocket(new Point(json.x, json.y), json.Id);
+    View.singleton.addFreeSocket(socket);
+    return socket;
+  }
+  addSocketRequest(isReconnection = false) {
+    const timestamp = Date.now();
+    WebSocketConnection.singleton.sentRequests.push({
+      timestamp: timestamp,
+      operation: OperationType.AddSocket,
+    });
+    //done
+    const diagramId = window.location.hash.split("/").pop();
+    $.ajax({
+      url: BaseOperationsURL + "/v1/diagram/" + diagramId + "/socket/add",
+      method: "POST",
+      contentType: "application/json",
+      headers: {
+        Authorization: "Bearer " + localStorage.getItem("token"),
+      },
+      data: JSON.stringify({
+        position: {
+          x: this.position.x,
+          y: this.position.y,
+        },
+      }),
+      success: (response) => {
+        console.log("Add socket", response);
+        WebSocketConnection.singleton.removeRequest(
+          timestamp,
+          OperationType.AddSocket,
+          response.operationId,
+          this,
+          isReconnection
+        );
+      },
+      error: (jqXHR, textStatus, errorThrown) => {
+        console.error("Adding socket failed:", textStatus, errorThrown);
+        return false;
+      },
+    });
   }
 }

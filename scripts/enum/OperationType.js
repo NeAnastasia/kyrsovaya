@@ -5,6 +5,7 @@ export const OperationType = {
   AddEdgeToEdge: "AddEdgeToEdge",
   AddEdgeToSocket: "AddEdgeToSocket",
   AddEdgeToFreeSpace: "AddEdgeToFreeSpace",
+  AddSocket: "AddSocket",
 
   ConnectEdgeToNode: "ConnectEdgeToNode",
   ConnectEdgeToEdge: "ConnectEdgeToEdge",

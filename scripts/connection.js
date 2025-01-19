@@ -8,6 +8,8 @@ import { MovingConnection } from "./movingConnection.js";
 import { FreeSocket, NodeSocket } from "./socket.js";
 import { EdgeEndType } from "./enum/EdgeEndType.js";
 import { BaseOperationsURL } from "./consts/baseUrl.js";
+import { OperationType } from "./enum/OperationType.js";
+import { WebSocketConnection } from "./webSocket/webSocket.js";
 
 export class Connection {
   static idCon = 0;
@@ -112,6 +114,12 @@ export class Connection {
     this.update();
     View.singleton.update();
   }
+  setId(id){
+    this.id = id;
+    $(this.#markerELStart).attr("id", `arrowhead-${id}-start`);
+    $(this.#markerELEnd).attr("id", `arrowhead-${id}-end`);
+    this.update();
+  }
   destroy() {
     this.removeWithouthDeletingDataInDB();
     View.singleton.removeElementRequest(this.id);
@@ -126,6 +134,13 @@ export class Connection {
       this.outSock.removeConnection(this);
     }
   }
+  updateLineBasedOnLineType(lineType) {
+    this.updateLine((lineType === "dashed") ? true : false);
+  }
+  updateLineWithUpdatingInDB(isDashed) {
+    this.updateLine(isDashed)
+    this.#patchUpdatingLineTypeOfEdge();
+  }
   updateLine(isDashed) {
     this.isDashed = isDashed;
     if (this.isDashed) {
@@ -137,17 +152,26 @@ export class Connection {
         $(this.lineEls[i]).attr("stroke-dasharray", 0);
       }
     }
-    this.#patchUpdatingLineTypeOfEdge();
   }
-  changeArrowHeadEnd(type) {
+  changeArrowHeadEndWithRequestToDB(type) {
+    this.#patchUpdatingArrowOfEdge(EdgeEndType.Target, type);
+    this.changeArrowHeadEndType(type);
+  }
+  changeArrowHeadEndType(type) {
     this.arrowTypeEnd = type;
-    this.#patchUpdatingArrowOfEdge(EdgeEndType.Target, type)
     this.update();
   }
-  changeArrowHeadStart(type) {
+  changeArrowHeadStartWithRequestToDB(type) {
+    this.#patchUpdatingArrowOfEdge(EdgeEndType.Source, type);
+    this.changeArrowHeadStartType(type)
+  }
+  changeArrowHeadStartType(type) {
     this.arrowTypeStart = type;
-    this.#patchUpdatingArrowOfEdge(EdgeEndType.Source, type)
     this.update();
+  }
+  reverseArrowHeadsWithUpdatingInDB() {
+    this.reverseArrowHeads();
+    this.#patchReversingArrowHeads();
   }
   reverseArrowHeads() {
     var previous = this.arrowTypeStart;
@@ -175,7 +199,6 @@ export class Connection {
         this.arrowTypeEnd = ArrowType.HollowEnd;
         break;
     }
-    this.#patchReversingArrowHeads();
     this.update();
   }
   #changeColorArrowHead() {
@@ -384,7 +407,7 @@ export class Connection {
           e.pageY - View.singleton.position.y - navbarHeight,
           this
         );
-        Connector.singleton.connectAssociation(point, this);
+        Connector.singleton.connectAssotionAsThisUser(point, this);
       } else {
         const r = View.singleton.el.getBoundingClientRect();
         if (document.getElementById("menu")) {
@@ -553,7 +576,7 @@ export class Connection {
   // POST {{base_url}}/v1/diagram/{{diagram_id}}/edge/add/to_free_space
   // Content-Type: application/json
   // Authorization: Bearer {{token}}
-  
+
   // {
   //   "source_node_id": "4be70edf-4f70-44e5-abfa-20980f3b20b6",
   //   "source_connection_position": {
@@ -581,14 +604,9 @@ export class Connection {
   // }
 
   // toJSONConnectionWithExistingFreeSocket() {}
-  
+
   toJSON() {
-    const toJSONConnection = {
-      source_node_id: this.inSock.parent.id,
-      source_connection_position: {
-        x: this.inSock.getAbsolutePosition().x,
-        y: this.inSock.getAbsolutePosition().y,
-      },
+    let toJSONConnection = {
       edge: {
         color: this.color,
         arrowTypeSource: this.arrowTypeStart,
@@ -600,21 +618,77 @@ export class Connection {
       },
     };
     if (this.outPoint !== null) {
+      toJSONConnection = this.#toJSONAddSource(toJSONConnection, this.inSock);
       toJSONConnection.TargetId = this.outPoint.connectionParent.id;
       toJSONConnection.position = {
         x: this.outPoint.x,
         y: this.outPoint.y,
       };
-    } else if (this.outSock !== null) {
-      toJSONConnection.target_node_id = this.outSock.parent.id;
-      const outSockPosition = this.outSock.getAbsolutePosition();
-      toJSONConnection.target_connection_position = {
-        x: outSockPosition.x,
-        y: outSockPosition.y,
-      };
+    } else if (this.inSock instanceof FreeSocket) {
+      toJSONConnection.target_free_socket_id = this.inSock.id;
+      toJSONConnection = this.#toJSONAddSource(toJSONConnection, this.outSock);
+    } else if (this.outSock instanceof FreeSocket) {
+      toJSONConnection.target_free_socket_id = this.outSock.id;
+      toJSONConnection = this.#toJSONAddSource(toJSONConnection, this.inSock);
+    } else {
+      toJSONConnection = this.#toJSONAddSource(toJSONConnection, this.inSock);
+      toJSONConnection = this.#toJSONAddTarget(toJSONConnection, this.outSock);
       toJSONConnection.source_free_socket_id = null;
     }
     return toJSONConnection;
+  }
+
+  #toJSONAddSource(toJSONConnection, socket) {
+    const sockPosition = socket.getAbsolutePosition();
+    toJSONConnection.source_node_id = socket.parent.id;
+    toJSONConnection.source_connection_position = {
+      x: sockPosition.x,
+      y: sockPosition.y,
+    };
+    return toJSONConnection;
+  }
+
+  #toJSONAddTarget(toJSONConnection, socket) {
+    toJSONConnection.target_node_id = socket.parent.id;
+    const sockPosition = socket.getAbsolutePosition();
+    toJSONConnection.target_connection_position = {
+      x: sockPosition.x,
+      y: sockPosition.y,
+    };
+    return toJSONConnection;
+  }
+  
+  // AddEdgeToNode: "AddEdgeToNode",
+  // AddEdgeToEdge: "AddEdgeToEdge",
+  // AddEdgeToSocket: "AddEdgeToSocket",
+  // AddEdgeToFreeSpace: "AddEdgeToFreeSpace"
+
+  static fromJSONofAnotherUser(json, operationType) {
+    switch (operationType) {
+      case OperationType.AddEdgeToSocket:
+        Connection.fromJSONNodeToFreeSocket(json);
+        break;
+      case OperationType.AddEdgeToNode:
+        Connection.fromJSONNodeToNode(json);
+        break;
+      case OperationType.AddEdgeToEdge:
+        Connection.fromJSONNodeToEdge(json);
+        break;
+    }
+  }
+
+  static fromJSONNodeToFreeSocket(json) {
+    const sourceNode = View.singleton.getNodeById(
+      json.SourceEnd.ConnectedElementId
+    );
+    const sourceSocket = sourceNode.getSocketByPosition(
+      json.SourceEnd.x,
+      json.SourceEnd.y
+    );
+    const targetSocket = View.singleton.getFreeSocketById(json.TargetEnd.ConnectedElementId)
+    const connection = Connection.fromJSON(json, sourceSocket, targetSocket);
+
+    targetSocket.addConnection(connection);
   }
 
   static fromJSONNodeToNode(json) {
@@ -705,6 +779,11 @@ export class Connection {
 
   #patchReversingArrowHeads() {
     //done
+    const timestamp = Date.now()
+    WebSocketConnection.singleton.sentRequests.push({
+      timestamp: timestamp,
+      operation: OperationType.ReverseEdgeArrows,
+    });
     const id = window.location.hash.split("/").pop();
     $.ajax({
       url:
@@ -719,6 +798,12 @@ export class Connection {
       }),
       success: (response) => {
         console.log("Reversing arrowheads: ", response);
+        WebSocketConnection.singleton.removeRequest(
+          timestamp,
+          OperationType.ReverseEdgeArrows,
+          response.operationId,
+          this
+        );
       },
       error: (jqXHR, textStatus, errorThrown) => {
         console.error("Updating reverse arrowheads:", textStatus, errorThrown);
@@ -728,6 +813,11 @@ export class Connection {
 
   #patchUpdatingArrowOfEdge(edge_end, new_arrow_type) {
     //done
+    const timestamp = Date.now()
+    WebSocketConnection.singleton.sentRequests.push({
+      timestamp: timestamp,
+      operation: OperationType.UpdateArrow,
+    });
     const id = window.location.hash.split("/").pop();
     $.ajax({
       url: BaseOperationsURL + "/api/v1/diagrams/" + id + "/edge/arrow",
@@ -743,6 +833,12 @@ export class Connection {
       }),
       success: (response) => {
         console.log("Update arrow of edge: ", response);
+        WebSocketConnection.singleton.removeRequest(
+          timestamp,
+          OperationType.UpdateArrow,
+          response.operationId,
+          this
+        );
       },
       error: (jqXHR, textStatus, errorThrown) => {
         console.error("Updating arrow of edge:", textStatus, errorThrown);
@@ -750,50 +846,72 @@ export class Connection {
     });
   }
 
-patchUpdatingColorOfEdge() {
-  //done
-  const id = window.location.hash.split("/").pop();
-  $.ajax({
-    url: BaseOperationsURL + "/api/v1/diagrams/" + id + "/element/color",
-    method: "PATCH",
-    contentType: "application/json",
-    headers: {
-      Authorization: "Bearer " + localStorage.getItem("token"),
-    },
-    data: JSON.stringify({
-      element_id: this.id,
-      color: this.color,
-    }),
-    success: (response) => {
-      console.log("Update update color of edge: ", response);
-    },
-    error: (jqXHR, textStatus, errorThrown) => {
-      console.error("Updating color of edge:", textStatus, errorThrown);
-    },
-  });
-}
+  patchUpdatingColorOfEdge() {
+    //done
+    const timestamp = Date.now()
+    WebSocketConnection.singleton.sentRequests.push({
+      timestamp: timestamp,
+      operation: OperationType.ChangeColor,
+    });
+    const id = window.location.hash.split("/").pop();
+    $.ajax({
+      url: BaseOperationsURL + "/api/v1/diagrams/" + id + "/element/color",
+      method: "PATCH",
+      contentType: "application/json",
+      headers: {
+        Authorization: "Bearer " + localStorage.getItem("token"),
+      },
+      data: JSON.stringify({
+        element_id: this.id,
+        color: this.color,
+      }),
+      success: (response) => {
+        console.log("Update update color of edge: ", response);
+        WebSocketConnection.singleton.removeRequest(
+          timestamp,
+          OperationType.ChangeColor,
+          response.operationId,
+          this
+        );
+      },
+      error: (jqXHR, textStatus, errorThrown) => {
+        console.error("Updating color of edge:", textStatus, errorThrown);
+      },
+    });
+  }
 
-#patchUpdatingLineTypeOfEdge() {
-  //done
-  const line_style = this.isDashed ? "dashed" : "solid" 
-  const id = window.location.hash.split("/").pop();
-  $.ajax({
-    url: BaseOperationsURL + "/api/v1/diagrams/" + id + "/edge/line",
-    method: "PATCH",
-    contentType: "application/json",
-    headers: {
-      Authorization: "Bearer " + localStorage.getItem("token"),
-    },
-    data: JSON.stringify({
-      edge_id: this.id,
-      new_line_style: line_style,
-    }),
-    success: (response) => {
-      console.log("Update line type of edge: ", response);
-    },
-    error: (jqXHR, textStatus, errorThrown) => {
-      console.error("Updating line type of edge:", textStatus, errorThrown);
-    },
-  });
-}
+  #patchUpdatingLineTypeOfEdge() {
+    //done
+    const timestamp = Date.now()
+    WebSocketConnection.singleton.sentRequests.push({
+      timestamp: timestamp,
+      operation: OperationType.UpdateEdgeStyle,
+    });
+    const line_style = this.isDashed ? "dashed" : "solid";
+    const id = window.location.hash.split("/").pop();
+    $.ajax({
+      url: BaseOperationsURL + "/api/v1/diagrams/" + id + "/edge/line",
+      method: "PATCH",
+      contentType: "application/json",
+      headers: {
+        Authorization: "Bearer " + localStorage.getItem("token"),
+      },
+      data: JSON.stringify({
+        edge_id: this.id,
+        new_line_style: line_style,
+      }),
+      success: (response) => {
+        console.log("Update line type of edge: ", response);
+        WebSocketConnection.singleton.removeRequest(
+          timestamp,
+          OperationType.UpdateEdgeStyle,
+          response.operationId,
+          this
+        );
+      },
+      error: (jqXHR, textStatus, errorThrown) => {
+        console.error("Updating line type of edge:", textStatus, errorThrown);
+      },
+    });
+  }
 }

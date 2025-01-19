@@ -7,6 +7,9 @@ import { FreeSocket } from "./socket.js";
 import { Point } from "./point.js";
 import { BaseOperationsURL } from "./consts/baseUrl.js";
 import { EdgeEndType } from "./enum/EdgeEndType.js";
+import { ElementType } from "./enum/ElementType.js";
+import { WebSocketConnection } from "./webSocket/webSocket.js";
+import { OperationType } from "./enum/OperationType.js";
 
 export class View {
   static singleton = new View();
@@ -69,11 +72,16 @@ export class View {
           !e.target.classList.contains("node-connection-socket") &&
           !e.target.classList.contains("arrow")
         ) {
-          Connector.singleton.reconnect(
-            new FreeSocket(new Point(e.pageX, e.pageY))
+          const navbar = document.getElementById("navbar");
+          const navbarHeight = navbar ? navbar.offsetHeight : 0;
+          const socket = new FreeSocket(
+            new Point(e.pageX, e.pageY - navbarHeight)
           );
+          const isAdded = socket.addSocketRequest(true);
+          if (isAdded === false) {
+            this.showAlertForUnableToCreateSocket();
+          }
         }
-        this.#resetAftermathOfMovingConnection();
       }
     }
   }
@@ -99,8 +107,15 @@ export class View {
         (e.target == this.el || e.target == this.#container)
       ) {
         if (Connector.singleton.currentSocket !== null) {
-          const socket = new FreeSocket(new Point(e.pageX, e.pageY));
-          Connector.singleton.connectSockets(socket);
+          const navbar = document.getElementById("navbar");
+          const navbarHeight = navbar ? navbar.offsetHeight : 0;
+          const socket = new FreeSocket(
+            new Point(e.pageX, e.pageY - navbarHeight)
+          );
+          const isAdded = socket.addSocketRequest();
+          if (isAdded === false) {
+            this.showAlertForUnableToCreateSocket();
+          }
         } else {
           const selection = window.getSelection();
           if (selection.rangeCount > 0) {
@@ -147,6 +162,15 @@ export class View {
     conn.destroy();
     window.dispatchEvent(new Event("viewupdate"));
   }
+  #removeFreeSockets(socket) {
+    const index = this.freeSockets.indexOf(socket);
+    if (index == -1) {
+      return;
+    }
+    this.freeSockets.splice(index, 1);
+    socket.destroy();
+    window.dispatchEvent(new Event("viewupdate"));
+  }
   addConnection(conn) {
     this.connections.push(conn);
     window.dispatchEvent(new Event("viewupdate"));
@@ -180,6 +204,11 @@ export class View {
       "Вы не можете соединить свободный конец ребра и ребро.";
     this.#showAlert();
   }
+  showAlertForUnableToCreateSocket() {
+    this.#alert.textContent =
+      "К сожалению, не удалось создать нужный элемент для создания соединения, что-то пошло не так";
+    this.#showAlert();
+  }
   #showAlert() {
     $(this.#alert).appendTo(document.body);
     this.connectionIsMoving = false;
@@ -187,13 +216,13 @@ export class View {
   removeAlert() {
     if ($(".alert-danger").length !== 0) {
       $(".alert-danger").remove();
-      this.#resetAftermathOfMovingConnection();
+      this.resetAftermathOfMovingConnection();
     }
   }
   update() {
     this.el.style.transform = `translate(${this.position.x}px, ${this.position.y}px)`;
   }
-  #resetAftermathOfMovingConnection() {
+  resetAftermathOfMovingConnection() {
     $(".no-select").removeClass("no-select");
     this.connectionIsMoving = false;
     MovingConnection.singleton.currentConnection = null;
@@ -218,21 +247,54 @@ export class View {
   getConnectionById(id) {
     return this.connections.find((connection) => connection.id === id) || null;
   }
+  getFreeSocketById(id) {
+    return this.freeSockets.find((socket) => socket.id === id) || null;
+  }
+  removeElementById(id) {
+    console.log(id)
+    const node = this.getNodeById(id);
+    if (node) {
+      node.removeHTMLElement();
+      window.dispatchEvent(new Event("viewupdate"));
+      return;
+    }
+    const connection = this.getConnectionById(id);
+    if (connection) {
+      connection.removeWithouthDeletingDataInDB();
+      window.dispatchEvent(new Event("viewupdate"));
+      return;
+    }
+    const socket = this.getFreeSocketById(id);
+    if (socket) {
+      socket.destroy();
+      window.dispatchEvent(new Event("viewupdate"));
+      return;
+    }
+    console.log("well...")
+    return null;
+  }
   fromJSON() {
     if (this.JSONInfo !== null) {
       this.#clear();
       const diagramStructure = this.JSONInfo.diagram_structure.elements;
 
       const nodes = Object.keys(diagramStructure)
-        .filter((key) => diagramStructure[key].ElementType === "Node")
+        .filter((key) => diagramStructure[key].ElementType === ElementType.Node)
         .map((key) => Node.fromJSON(diagramStructure[key]));
 
+      const freeSockets = Object.keys(diagramStructure)
+        .filter(
+          (key) => diagramStructure[key].ElementType === ElementType.FreeSocket
+        )
+        .map((key) => FreeSocket.fromJSON(diagramStructure[key]));
+
       const edges = Object.keys(diagramStructure).filter(
-        (key) => diagramStructure[key].ElementType === "Edge"
+        (key) => diagramStructure[key].ElementType === ElementType.Edge
       );
 
       const assotiationEdges = [];
       const nodeToNodeEdges = [];
+      const toFreeSocketEdges = [];
 
       edges.forEach((edge) => {
         if (
@@ -247,6 +309,14 @@ export class View {
         ) {
           diagramStructure[edge].edgePointEnd = EdgeEndType.Target;
           assotiationEdges.push(diagramStructure[edge]);
+        } else if (
+          this.freeSockets.some(
+            (freeSocket) =>
+              freeSocket.id ===
+              diagramStructure[edge].TargetEnd.ConnectedElementId
+          )
+        ) {
+          toFreeSocketEdges.push(diagramStructure[edge]);
         } else {
           nodeToNodeEdges.push(diagramStructure[edge]);
         }
@@ -260,6 +330,11 @@ export class View {
         Connection.fromJSONNodeToEdge(edge);
       });
 
+      toFreeSocketEdges.forEach((edge) => {
+        Connection.fromJSONNodeToFreeSocket(edge);
+      });
+
+      //Быстрая отчистка всех элементов из БД
       // Object.keys(diagramStructure).map((key) =>
       //   this.removeElementRequest(key)
       // );
@@ -299,10 +374,19 @@ export class View {
     for (const c of trc) {
       this.#removeConnection(c);
     }
+    const trf = [...this.freeSockets];
+    for (const f of trf) {
+      this.#removeFreeSockets(f);
+    }
     window.dispatchEvent(new Event("viewupdate"));
   }
   removeElementRequest(id) {
     //done
+    const timestamp = Date.now()
+    WebSocketConnection.singleton.sentRequests.push({
+      timestamp: timestamp,
+      operation: OperationType.RemoveElement,
+    });
     const diagramId = window.location.hash.split("/").pop();
     $.ajax({
       url: BaseOperationsURL + "/v1/diagrams/" + diagramId + "/element/remove",
@@ -314,9 +398,51 @@ export class View {
       data: JSON.stringify({ element_id: id }),
       success: (response) => {
         console.log("Deleting element", response);
+        WebSocketConnection.singleton.removeRequest(
+          timestamp,
+          OperationType.RemoveElement,
+          response.operationId,
+          this
+        );
       },
       error: (jqXHR, textStatus, errorThrown) => {
         console.error("Removing element failed:", textStatus, errorThrown);
+      },
+    });
+  }
+  moveAnyElementRequest(elementId, position) {
+    const timestamp = Date.now()
+    WebSocketConnection.singleton.sentRequests.push({
+      timestamp: timestamp,
+      operation: OperationType.Move,
+    });
+    //done
+    const id = window.location.hash.split("/").pop();
+    $.ajax({
+      url: BaseOperationsURL + "/api/v1/diagrams/" + id + "/element/move",
+      method: "PATCH",
+      contentType: "application/json",
+      headers: {
+        Authorization: "Bearer " + localStorage.getItem("token"),
+      },
+      data: JSON.stringify({
+        element_id: elementId,
+        new_position: {
+          x: position.x,
+          y: position.y,
+        },
+      }),
+      success: (response) => {
+        console.log("Move element: ", response);
+        WebSocketConnection.singleton.removeRequest(
+          timestamp,
+          OperationType.Move,
+          response.operationId,
+          this
+        );
+      },
+      error: (jqXHR, textStatus, errorThrown) => {
+        console.error("Moving element failed:", textStatus, errorThrown);
       },
     });
   }

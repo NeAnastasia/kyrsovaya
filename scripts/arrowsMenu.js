@@ -1,5 +1,9 @@
+import { BaseOperationsURL } from "./consts/baseUrl.js";
 import { ArrowType } from "./enum/ArrowType.js";
+import { EdgeFieldType } from "./enum/EdgeFieldType.js";
+import { OperationType } from "./enum/OperationType.js";
 import { View } from "./view.js";
+import { WebSocketConnection } from "./webSocket/webSocket.js";
 
 export class ArrowsMenu {
   static singleton = new ArrowsMenu();
@@ -202,18 +206,30 @@ export class ArrowsMenu {
       this.#connection.spanIn.textContent = $(
         document.getElementById("input-cardinal-number-1")
       ).val();
+      this.#patchTextOfEdge(
+        EdgeFieldType.Start,
+        this.#connection.spanIn.textContent
+      );
     });
 
     $(document.getElementById("input-cardinal-number-2")).on("input", (e) => {
       this.#connection.spanCenter.textContent = $(
         document.getElementById("input-cardinal-number-2")
       ).val();
+      this.#patchTextOfEdge(
+        EdgeFieldType.Center,
+        this.#connection.spanCenter.textContent
+      );
     });
 
     $(document.getElementById("input-cardinal-number-3")).on("input", (e) => {
       this.#connection.spanOut.textContent = $(
         document.getElementById("input-cardinal-number-3")
       ).val();
+      this.#patchTextOfEdge(
+        EdgeFieldType.End,
+        this.#connection.spanOut.textContent
+      );
     });
 
     $(document.getElementById("input-cardinal-number-2")).blur((e) => {
@@ -246,7 +262,7 @@ export class ArrowsMenu {
 
     $(document.getElementById("reverse")).click((e) => {
       e.stopPropagation();
-      this.#connection.reverseArrowHeads();
+      this.#connection.reverseArrowHeadsWithUpdatingInDB();
     });
 
     $(document.getElementById("color-input")).on("change", (e) => {
@@ -258,49 +274,71 @@ export class ArrowsMenu {
         e.stopPropagation();
         switch (element.id) {
           case "none-end":
-            this.#connection.changeArrowHeadEnd(ArrowType.None);
+            this.#connection.changeArrowHeadEndWithRequestToDB(ArrowType.None);
             break;
           case "default-end":
-            this.#connection.changeArrowHeadEnd(ArrowType.DefaultEnd);
+            this.#connection.changeArrowHeadEndWithRequestToDB(
+              ArrowType.DefaultEnd
+            );
             break;
           case "hollow-end":
-            this.#connection.changeArrowHeadEnd(ArrowType.HollowEnd);
+            this.#connection.changeArrowHeadEndWithRequestToDB(
+              ArrowType.HollowEnd
+            );
             break;
           case "filled-end":
-            this.#connection.changeArrowHeadEnd(ArrowType.FilledEnd);
+            this.#connection.changeArrowHeadEndWithRequestToDB(
+              ArrowType.FilledEnd
+            );
             break;
           case "rhombus-hollow-end":
-            this.#connection.changeArrowHeadEnd(ArrowType.RhombusHollow);
+            this.#connection.changeArrowHeadEndWithRequestToDB(
+              ArrowType.RhombusHollow
+            );
             break;
           case "rhombus-end":
-            this.#connection.changeArrowHeadEnd(ArrowType.Rhombus);
+            this.#connection.changeArrowHeadEndWithRequestToDB(
+              ArrowType.Rhombus
+            );
             break;
           case "none-start":
-            this.#connection.changeArrowHeadStart(ArrowType.None);
+            this.#connection.changeArrowHeadStartWithRequestToDB(
+              ArrowType.None
+            );
             break;
           case "default-start":
-            this.#connection.changeArrowHeadStart(ArrowType.DefaultStart);
+            this.#connection.changeArrowHeadStartWithRequestToDB(
+              ArrowType.DefaultStart
+            );
             break;
           case "hollow-start":
-            this.#connection.changeArrowHeadStart(ArrowType.HollowStart);
+            this.#connection.changeArrowHeadStartWithRequestToDB(
+              ArrowType.HollowStart
+            );
             break;
           case "filled-start":
-            this.#connection.changeArrowHeadStart(ArrowType.FilledStart);
+            this.#connection.changeArrowHeadStartWithRequestToDB(
+              ArrowType.FilledStart
+            );
             break;
           case "rhombus-hollow-start":
-            this.#connection.changeArrowHeadStart(ArrowType.RhombusHollow);
+            this.#connection.changeArrowHeadStartWithRequestToDB(
+              ArrowType.RhombusHollow
+            );
             break;
           case "rhombus-start":
-            this.#connection.changeArrowHeadStart(ArrowType.Rhombus);
+            this.#connection.changeArrowHeadStartWithRequestToDB(
+              ArrowType.Rhombus
+            );
             break;
           case "flat":
-            this.#connection.updateLine(false);
+            this.#connection.updateLineWithUpdatingInDB(false);
             break;
           case "dashed":
-            this.#connection.updateLine(true);
+            this.#connection.updateLineWithUpdatingInDB(true);
             break;
           default:
-            this.#connection.changeArrowHeadEnd(ArrowType.None);
+            this.#connection.changeArrowHeadEndWithRequestToDB(ArrowType.None);
         }
       });
     });
@@ -312,5 +350,51 @@ export class ArrowsMenu {
   }
   #deleteMenu() {
     $(".menu").remove();
+  }
+
+  //   ### Update Text of Edge (field_type: start, center, end)
+  // PATCH {{base_url}}/api/v1/diagrams/{{diagram_id}}/edge/text
+  // Content-Type: application/json
+  // Authorization: Bearer {{token}}
+
+  // {
+  //   "edge_id": "95e2c995-9a96-4bc6-8806-30fe855f0636",
+  //   "field_type": "start",
+  //   "text": "Updated Start Text"
+  // }
+
+  #patchTextOfEdge(field_type, text) {
+    //done
+    const timestamp = Date.now();
+    WebSocketConnection.singleton.sentRequests.push({
+      timestamp: timestamp,
+      operation: OperationType.UpdateEdgeText,
+    });
+    const id = window.location.hash.split("/").pop();
+    $.ajax({
+      url: BaseOperationsURL + "/api/v1/diagrams/" + id + "/edge/text",
+      method: "PATCH",
+      contentType: "application/json",
+      headers: {
+        Authorization: "Bearer " + localStorage.getItem("token"),
+      },
+      data: JSON.stringify({
+        edge_id: this.#connection.id,
+        field_type: field_type,
+        text: text,
+      }),
+      success: (response) => {
+        console.log("Update text of edge: ", response);
+        WebSocketConnection.singleton.removeRequest(
+          timestamp,
+          OperationType.UpdateEdgeText,
+          response.operationId,
+          this
+        );
+      },
+      error: (jqXHR, textStatus, errorThrown) => {
+        console.error("Updating text of edge:", textStatus, errorThrown);
+      },
+    });
   }
 }
