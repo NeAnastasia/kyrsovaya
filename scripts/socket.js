@@ -127,14 +127,7 @@ export class FreeSocket extends Socket {
     $(el).addClass("freeone");
     $(el).appendTo("#view-area")[0];
     super(el);
-    if (id === "") {
-      this.id = "free-socket-" + FreeSocket.idSockNum;
-      FreeSocket.idSockNum++;
-    } else {
-      this.id = id;
-      FreeSocket.idSockNum = parseInt(id.replace("free-socket-", ""), 10);
-      FreeSocket.idSockNum = FreeSocket.idSockNum + 1;
-    }
+    this.id = id;
     this.isMouseDown = false;
     this.#moveRequestCounter = 0;
     this.position = point;
@@ -221,7 +214,7 @@ export class FreeSocket extends Socket {
   // }
   static fromJSONofAnotherUser(json) {
     const socket = FreeSocket.fromJSON(json);
-    socket.id = json.id;
+    socket.id = json.Id;
     console.log(socket)
   }
 
