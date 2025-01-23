@@ -105,19 +105,52 @@ export class Connection {
         View.singleton.connectionIsMoving = true;
         MovingConnection.singleton.currentConnection = this;
         if (e.target === this.#outClick && this.inSock !== null) {
-          Connector.singleton.currentSocket = this.inSock;
+          Connector.getInstance().currentSocket = this.inSock;
         } else if (e.target === this.#inClick && this.outSock !== null) {
-          Connector.singleton.currentSocket = this.outSock;
+          Connector.getInstance().currentSocket = this.outSock;
         }
+      }
+    });
+    $(this.#inClick).on("mouseenter", () => {
+      if (!$(this.#inClick).hasClass("click-el-hidden")) {
+        this.#lineClickEls.addClass("choosen");
+      }
+    });
+
+    $(this.#inClick).on("mouseleave", () => {
+      if (!$(this.#inClick).hasClass("click-el-hidden")) {
+        this.#lineClickEls.removeClass("choosen");
+      }
+    });
+
+    $(this.#outClick).on("mouseenter", () => {
+      if (!$(this.#inClick).hasClass("click-el-hidden")) {
+        this.#lineClickEls.addClass("choosen");
+      }
+    });
+
+    $(this.#outClick).on("mouseleave", () => {
+      if (!$(this.#inClick).hasClass("click-el-hidden")) {
+        this.#lineClickEls.removeClass("choosen");
       }
     });
     this.update();
     View.singleton.update();
   }
-  setId(id){
+  getInSocket() {
+    return this.inSock;
+  }
+  getOutSocket() {
+    return this.outSock;
+  }
+  getOutPoint() {
+    return this.outPoint;
+  }
+  setId(id) {
     this.id = id;
     $(this.#markerELStart).attr("id", `arrowhead-${id}-start`);
     $(this.#markerELEnd).attr("id", `arrowhead-${id}-end`);
+    $(this.#el).attr("id", this.id);
     this.update();
   }
   destroy() {
@@ -125,6 +158,11 @@ export class Connection {
     View.singleton.removeElementRequest(this.id);
   }
   removeWithouthDeletingDataInDB() {
+    $(this.#inClick).off("mouseenter");
+    $(this.#inClick).off("mouseleave");
+    $(this.#outClick).off("mouseenter");
+    $(this.#outClick).off("mouseleave");
+    $(this.#lineClickEls).off("mouseup");
     $(this.#el).remove();
     $(this.spanIn).remove();
     $(this.spanOut).remove();
@@ -135,10 +173,10 @@ export class Connection {
     }
   }
   updateLineBasedOnLineType(lineType) {
-    this.updateLine((lineType === "dashed") ? true : false);
+    this.updateLine(lineType === "dashed" ? true : false);
   }
   updateLineWithUpdatingInDB(isDashed) {
-    this.updateLine(isDashed)
+    this.updateLine(isDashed);
     this.#patchUpdatingLineTypeOfEdge();
   }
   updateLine(isDashed) {
@@ -163,7 +201,7 @@ export class Connection {
   }
   changeArrowHeadStartWithRequestToDB(type) {
     this.#patchUpdatingArrowOfEdge(EdgeEndType.Source, type);
-    this.changeArrowHeadStartType(type)
+    this.changeArrowHeadStartType(type);
   }
   changeArrowHeadStartType(type) {
     this.arrowTypeStart = type;
@@ -367,12 +405,12 @@ export class Connection {
           )
         ) {
           View.singleton.showAlertForConnectingConnectionToItself();
-          Connector.singleton.currentSocket = null;
+          Connector.getInstance().currentSocket = null;
           MovingConnection.singleton.currentConnection = null;
         } else {
           if (
             MovingConnection.singleton.checkIfCurrentConnectionIsSockPointConnection() &&
-            Connector.singleton.currentSocket === null
+            Connector.getInstance().currentSocket === null
           ) {
             View.singleton.showAlertForConnectingSockPointConnectionToConnectionBySock();
             MovingConnection.singleton.currentConnection = null;
@@ -388,10 +426,14 @@ export class Connection {
             if (this.outPoint === point) {
               View.singleton.connectionIsMoving = false;
               MovingConnection.singleton.currentConnection = null;
-              Connector.singleton.currentSocket = null;
+              Connector.getInstance().currentSocket = null;
             } else {
-              Connector.singleton.reconnectAssociation(point, this);
-              MovingConnection.singleton.deleteCurrentConnection();
+              Connector.getInstance().reconnectFromThisUser(
+                MovingConnection.singleton.currentConnection.inSock,
+                point,
+                this
+              );
+              //MovingConnection.singleton.deleteCurrentConnection();
             }
           }
         }
@@ -399,7 +441,7 @@ export class Connection {
     });
     $(this.#lineClickEls).click((e) => {
       e.stopPropagation();
-      if (Connector.singleton.currentSocket !== null) {
+      if (Connector.getInstance().currentSocket !== null) {
         const navbar = document.getElementById("navbar");
         const navbarHeight = navbar ? navbar.offsetHeight : 0;
         const point = new ConnectingPoint(
@@ -407,7 +449,7 @@ export class Connection {
           e.pageY - View.singleton.position.y - navbarHeight,
           this
         );
-        Connector.singleton.connectAssotionAsThisUser(point, this);
+        Connector.getInstance().connectAssotionAsThisUser(point, this);
       } else {
         const r = View.singleton.el.getBoundingClientRect();
         if (document.getElementById("menu")) {
@@ -508,12 +550,30 @@ export class Connection {
     }
   }
   disableClickEndEls() {
+    this.#lineClickEls.addClass("click-el-hidden");
     $(this.#inClick).addClass("click-el-hidden");
     $(this.#outClick).addClass("click-el-hidden");
   }
   enableClickEndEls() {
+    this.#lineClickEls.removeClass("click-el-hidden");
     $(this.#inClick).removeClass("click-el-hidden");
     $(this.#outClick).removeClass("click-el-hidden");
+  }
+  compareLines(ce, array) {
+    // Проверяем длину
+    if (ce.length !== array.length) {
+      return false;
+    }
+
+    // Сравниваем элементы
+    for (let i = 0; i < ce.length; i++) {
+      // Предполагаем, что line - это объект, который можно сравнить
+      if (ce[i] !== array[i]) {
+        return false;
+      }
+    }
+
+    return true;
   }
   update() {
     if (this.outSock !== null) {
@@ -543,14 +603,18 @@ export class Connection {
     }
     this.#checkIfArrowsNeedToBeChanged();
     this.#definePosAdditionalElements();
+
     $(this.lineEls).remove();
+    $(this.#el).find(this.lineEls).remove();
     $(this.#lineClickEls).remove();
+    $(this.#el).find(this.#lineClickEls).remove();
     for (var i = 0; i < this.#arrowLines.length; i++) {
       $(this.#el).append(this.#arrowLines[i]);
       const clickLine = $(this.#arrowLines[i])
         .clone()
         .addClass("arrow")
-        .css("stroke", this.color);
+        .css("stroke", this.color)
+        .attr("stroke-dasharray", 0);
       if (clickLine.attr("marker-start") !== undefined) {
         clickLine.attr("marker-start", "");
       }
@@ -559,11 +623,24 @@ export class Connection {
       }
       $(this.#el).append(clickLine);
     }
+    // $(this.#el).appendTo(clickLine);
+    $(this.#el).appendTo("#view-area")[0];
     this.#lineClickEls = $(this.#el).find(".arrow");
     this.lineEls = $(this.#el).find("line").not(".arrow");
     this.#checkIfClickLineNeedsToBeShorter();
     this.changeColor(this.color);
     this.#addClickEventToLines();
+    this.#lineClickEls.on("mouseenter", () => {
+      if (!$(this.#inClick).hasClass("click-el-hidden")) {
+        this.#lineClickEls.addClass("choosen");
+      }
+    });
+
+    this.#lineClickEls.on("mouseleave", () => {
+      if (!$(this.#inClick).hasClass("click-el-hidden")) {
+        this.#lineClickEls.removeClass("choosen");
+      }
+    });
     if (this.connectedConnections.length !== 0) {
       $(this.connectedConnections).each((i, conn) => {
         conn.update();
@@ -657,7 +734,7 @@ export class Connection {
     };
     return toJSONConnection;
   }
-  
+
   // AddEdgeToNode: "AddEdgeToNode",
   // AddEdgeToEdge: "AddEdgeToEdge",
   // AddEdgeToSocket: "AddEdgeToSocket",
@@ -685,7 +762,9 @@ export class Connection {
       json.SourceEnd.x,
       json.SourceEnd.y
     );
-    const targetSocket = View.singleton.getFreeSocketById(json.TargetEnd.ConnectedElementId)
+    const targetSocket = View.singleton.getFreeSocketById(
+      json.TargetEnd.ConnectedElementId
+    );
     const connection = Connection.fromJSON(json, sourceSocket, targetSocket);
 
     targetSocket.addConnection(connection);
@@ -714,10 +793,8 @@ export class Connection {
 
   static fromJSONNodeToEdge(json) {
     let sourceNode, targetConnection, targetPoint, sourceSocket;
-    if (json.edgePointEnd === EdgeEndType.Target) {
-      sourceNode = View.singleton.getNodeById(
-        json.SourceEnd.ConnectedElementId
-      );
+    sourceNode = View.singleton.getNodeById(json.SourceEnd.ConnectedElementId);
+    if (sourceNode !== null) {
       targetConnection = View.singleton.getConnectionById(
         json.TargetEnd.ConnectedElementId
       );
@@ -754,6 +831,7 @@ export class Connection {
       null,
       targetPoint
     );
+    //sourceSocket.connecrions.push(connection)
     targetConnection.connectedConnections.push(connection);
   }
 
@@ -779,7 +857,7 @@ export class Connection {
 
   #patchReversingArrowHeads() {
     //done
-    const timestamp = Date.now()
+    const timestamp = Date.now();
     WebSocketConnection.singleton.sentRequests.push({
       timestamp: timestamp,
       operation: OperationType.ReverseEdgeArrows,
@@ -813,7 +891,7 @@ export class Connection {
 
   #patchUpdatingArrowOfEdge(edge_end, new_arrow_type) {
     //done
-    const timestamp = Date.now()
+    const timestamp = Date.now();
     WebSocketConnection.singleton.sentRequests.push({
       timestamp: timestamp,
       operation: OperationType.UpdateArrow,
@@ -848,7 +926,7 @@ export class Connection {
 
   patchUpdatingColorOfEdge() {
     //done
-    const timestamp = Date.now()
+    const timestamp = Date.now();
     WebSocketConnection.singleton.sentRequests.push({
       timestamp: timestamp,
       operation: OperationType.ChangeColor,
@@ -882,7 +960,7 @@ export class Connection {
 
   #patchUpdatingLineTypeOfEdge() {
     //done
-    const timestamp = Date.now()
+    const timestamp = Date.now();
     WebSocketConnection.singleton.sentRequests.push({
       timestamp: timestamp,
       operation: OperationType.UpdateEdgeStyle,

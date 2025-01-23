@@ -1,5 +1,6 @@
 import { View } from "./view.js";
 import { Point } from "./point.js";
+import { FreeSocket } from "./socket.js";
 
 export class Draggable {
   #mouseDown;
@@ -47,6 +48,9 @@ export class Draggable {
   }
   #move(e) {
     e.stopPropagation();
+    if (FreeSocket.movingSocket !== null) {
+      FreeSocket.movingSocket.move(e);
+    }
     if (this._sp == null) {
       return;
     }

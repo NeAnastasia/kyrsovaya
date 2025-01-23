@@ -81,6 +81,9 @@ export class ContextMenu {
     this.#container = this.#el.find("div.context-menu-container");
     this.#titleEl = this.#el.find("div.context-menu-title");
     this.refreshList();
+    const navbar = document.getElementById("navbar");
+    const navbarHeight = navbar ? navbar.offsetHeight : 0;
+    this.#el.css('top', navbarHeight);
     this.#el.appendTo(document.body);
   }
   get title() {

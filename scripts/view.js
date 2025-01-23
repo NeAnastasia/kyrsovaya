@@ -51,6 +51,7 @@ export class View {
     const rect = this.#container.getBoundingClientRect();
     //this.position = new Point(rect.x, rect.y);
   }
+  
   #down(e) {
     if (!this.connectionIsMoving && !this.isMouseDownOnFreeSocket) {
       e.preventDefault();
@@ -74,12 +75,36 @@ export class View {
         ) {
           const navbar = document.getElementById("navbar");
           const navbarHeight = navbar ? navbar.offsetHeight : 0;
-          const socket = new FreeSocket(
-            new Point(e.pageX, e.pageY - navbarHeight)
-          );
-          const isAdded = socket.addSocketRequest(true);
-          if (isAdded === false) {
-            this.showAlertForUnableToCreateSocket();
+          if (
+            Connector.getInstance().currentSocket !==
+              MovingConnection.singleton.currentConnection.inSock &&
+            MovingConnection.singleton.currentConnection.inSock instanceof
+              FreeSocket
+          ) {
+            MovingConnection.singleton.currentConnection.inSock.changePositionWithRequestToDB(
+              new Point(e.pageX, e.pageY)
+            );
+            this.resetAftermathOfMovingConnection();
+            this.isMouseDownOnFreeSocket = false;
+          } else if (
+            Connector.getInstance().currentSocket !==
+              MovingConnection.singleton.currentConnection.outSock &&
+            MovingConnection.singleton.currentConnection.outSock instanceof
+              FreeSocket
+          ) {
+            MovingConnection.singleton.currentConnection.outSock.changePositionWithRequestToDB(
+              new Point(e.pageX, e.pageY)
+            );
+            this.resetAftermathOfMovingConnection();
+            this.isMouseDownOnFreeSocket = false;
+          } else {
+            const socket = new FreeSocket(
+              new Point(e.pageX, e.pageY - navbarHeight)
+            );
+            const isAdded = socket.addSocketRequest(true);
+            if (isAdded === false) {
+              this.showAlertForUnableToCreateSocket();
+            }
           }
         }
       }
@@ -106,7 +131,7 @@ export class View {
         !this.#isMouseDownHappened &&
         (e.target == this.el || e.target == this.#container)
       ) {
-        if (Connector.singleton.currentSocket !== null) {
+        if (Connector.getInstance().currentSocket !== null) {
           const navbar = document.getElementById("navbar");
           const navbarHeight = navbar ? navbar.offsetHeight : 0;
           const socket = new FreeSocket(
@@ -116,6 +141,8 @@ export class View {
           if (isAdded === false) {
             this.showAlertForUnableToCreateSocket();
           }
+          // MovingConnection.singleton.deleteCurrentConnection();
+          // this.resetAftermathOfMovingConnection();
         } else {
           const selection = window.getSelection();
           if (selection.rangeCount > 0) {
@@ -153,13 +180,12 @@ export class View {
       window.dispatchEvent(new Event("viewupdate"));
     }
   }
-  #removeConnection(conn) {
+  removeConnection(conn) {
     const index = this.connections.indexOf(conn);
     if (index == -1) {
       return;
     }
     this.connections.splice(index, 1);
-    conn.destroy();
     window.dispatchEvent(new Event("viewupdate"));
   }
   #removeFreeSockets(socket) {
@@ -226,7 +252,7 @@ export class View {
     $(".no-select").removeClass("no-select");
     this.connectionIsMoving = false;
     MovingConnection.singleton.currentConnection = null;
-    Connector.singleton.currentSocket = null;
+    Connector.getInstance().currentSocket = null;
   }
   toJSON() {
     const ret = {
@@ -265,7 +291,7 @@ export class View {
     }
     const socket = this.getFreeSocketById(id);
     if (socket) {
-      socket.destroy();
+      socket.destroy(false);
       window.dispatchEvent(new Event("viewupdate"));
       return;
     }
@@ -322,44 +348,20 @@ export class View {
 
       nodeToNodeEdges.forEach((edge) => {
         Connection.fromJSONNodeToNode(edge);
+      });      
+      
+      toFreeSocketEdges.forEach((edge) => {
+        Connection.fromJSONNodeToFreeSocket(edge);
       });
 
       assotiationEdges.forEach((edge) => {
         Connection.fromJSONNodeToEdge(edge);
       });
 
-      toFreeSocketEdges.forEach((edge) => {
-        Connection.fromJSONNodeToFreeSocket(edge);
-      });
-
       //Быстрая отчистка всех элементов из БД
       // Object.keys(diagramStructure).map((key) =>
       //   this.removeElementRequest(key)
       // );
-
-      // Object.keys(diagramStructure).forEach((key) => {
-      //   const value = diagramStructure[key];
-      //   if (value.ElementType === "Node") {
-      //     Node.fromJSON(value);
-      //   } else if (value.ElementType === "Edge") {
-      //     //Connection.fromJSON(value);
-      //   }
-      // });
-      // for (const n of json.diagram_structure.elements) {
-      //   Node.fromJSON(n);
-      // }
-      // const conns = json.connections.sort((a, b) => {
-      //   if (a.outPoint === null && b.outPoint !== null) {
-      //     return -1;
-      //   }
-      //   if (a.outPoint !== null && b.outPoint === null) {
-      //     return 1;
-      //   }
-      //   return 0;
-      // });
-      // for (const conn of conns) {
-      //   Connection.fromJSON(conn);
-      // }
       window.dispatchEvent(new Event("viewupdate"));
     }
   }
@@ -370,7 +372,8 @@ export class View {
     }
     const trc = [...this.connections];
     for (const c of trc) {
-      this.#removeConnection(c);
+      this.removeConnection(c);
+      c.destroy();
     }
     const trf = [...this.freeSockets];
     for (const f of trf) {
@@ -380,7 +383,7 @@ export class View {
   }
   removeElementRequest(id) {
     //done
-    const timestamp = Date.now()
+    const timestamp = Date.now();
     WebSocketConnection.singleton.sentRequests.push({
       timestamp: timestamp,
       operation: OperationType.RemoveElement,
@@ -409,7 +412,7 @@ export class View {
     });
   }
   moveAnyElementRequest(elementId, position) {
-    const timestamp = Date.now()
+    const timestamp = Date.now();
     WebSocketConnection.singleton.sentRequests.push({
       timestamp: timestamp,
       operation: OperationType.Move,

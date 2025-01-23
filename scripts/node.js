@@ -168,6 +168,9 @@ export class Node {
     window.addEventListener("mousemove", this.#mouseMoveRaw.bind(this));
     this.update();
   }
+  getPosition() {
+    return this.position;
+  }
   #mouseMoveRaw(e) {
     const coords = new Point(e.pageX, e.pageY);
     const rect = this.el.getBoundingClientRect();
@@ -253,7 +256,6 @@ export class Node {
       this.el.classList.add(this.type);
     }
     if (this.label.innerHTML !== this.name) {
-      console.log(this.label, this.label.innerHTML )
       this.label.innerHTML = this.name;
     }
   }
@@ -277,7 +279,6 @@ export class Node {
   }
   #onRename(e) {
     this.name = this.label.innerHTML;
-    console.log(this.label)
     this.updateTextOfElementRequest("label", this.name);
     this.update();
   }
@@ -599,10 +600,8 @@ class ObjectNode extends Node {
     }
 
     if (this.textContentEl.html() !== this.textContent1) {
-      console.log("A")
       this.textContentEl.html(this.textContent1);
     }
-    console.log(this.textContentEl.html(), this.textContent1)
     $(this.lines[0])
       .attr("x1", "0")
       .attr("x2", this.width)

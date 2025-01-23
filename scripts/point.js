@@ -58,7 +58,10 @@ export class ConnectingPoint extends Point {
         closestLine = line;
       }
     });
-    this.set(closestPoint.x, closestPoint.y)
+    this.set(closestPoint.x, closestPoint.y);
     return $(closestLine).attr("y1") === $(closestLine).attr("y2");
+  }
+  destroy() {
+    this.connectionParent = null;
   }
 }

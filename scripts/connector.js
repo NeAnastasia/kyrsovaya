@@ -7,24 +7,36 @@ import { BaseOperationsURL } from "./consts/baseUrl.js";
 import { EdgeEndType } from "./enum/EdgeEndType.js";
 import { OperationType } from "./enum/OperationType.js";
 import { WebSocketConnection } from "./webSocket/webSocket.js";
+import { ConnectingPoint, Point } from "./point.js";
 
 export class Connector {
-  static singleton = new Connector();
+  static #instance;
+  #currentSocket;
+
   constructor() {
-    this.currentSocket = null;
+    if (Connector.singleton) {
+      throw new Error("Use Connector.getInstance() to get the singleton instance.");
+    }
+    Connector.#instance = this;
+    this.#currentSocket = null;
   }
-  reconnect(socket) {
-    if (
-      MovingConnection.singleton.currentConnection.outPoint !== null &&
-      this.currentSocket === null
-    ) {
-      this.currentSocket = socket;
-      this.reconnectAssociation(
-        MovingConnection.singleton.currentConnection.outPoint,
-        MovingConnection.singleton.currentConnection.outPoint.connectionParent
-      );
+
+  static getInstance() {
+    if (!Connector.#instance) {
+      Connector.#instance = new Connector();
+    }
+    return Connector.#instance;
+  }
+  set currentSocket(socket) {
+    this.#currentSocket = socket;
+  }
+  get currentSocket() {
+    return this.#currentSocket;
+  }
+  reconnect(socket, point = null, targetConnection = null) {
+    if (point !== null && this.#currentSocket === socket) {
+      this.reconnectAssociation(point, targetConnection);
     } else {
-      console.log("recconecting is right");
       this.#reconnectSockets(socket);
     }
     MovingConnection.singleton.deleteCurrentConnection();
@@ -33,7 +45,7 @@ export class Connector {
   reconnectAssociation(point, targetConnection) {
     const oldConnection = MovingConnection.singleton.currentConnection;
     let conn = new Connection(
-      this.currentSocket,
+      this.#currentSocket,
       null,
       point,
       oldConnection.arrowTypeStart,
@@ -45,7 +57,7 @@ export class Connector {
       oldConnection.id,
       oldConnection.color
     );
-    if (oldConnection.outSock === this.currentSocket) {
+    if (oldConnection.outSock === this.#currentSocket) {
       conn.reverseArrowHeads();
       conn.spanIn.textContent = oldConnection.spanOut.textContent;
       conn.spanOut.textContent = oldConnection.spanIn.textContent;
@@ -53,16 +65,29 @@ export class Connector {
     if (oldConnection.isArrowsReversed) {
       conn.unswapArrowHeads();
     }
+
+    targetConnection.connectedConnections =
+    targetConnection.connectedConnections.filter(
+      (connection) => connection !== oldConnection
+    );
     targetConnection.connectedConnections.push(conn);
+
+    this.#currentSocket.removeConnection(oldConnection)
+    this.#currentSocket.connections.push(conn);
+
+    View.singleton.connections =
+    View.singleton.connections.filter(
+      (connection) => connection !== oldConnection
+    );
+    View.singleton.addConnection(conn);
     this.#connect(conn);
   }
   #reconnectSockets(sock) {
-    console.log("reconnectSockets", sock, this.currentSocket);
     let conn;
     const oldConnection = MovingConnection.singleton.currentConnection;
-    if (this.currentSocket === oldConnection.inSock) {
+    if (this.#currentSocket === oldConnection.inSock) {
       conn = new Connection(
-        this.currentSocket,
+        this.#currentSocket,
         sock,
         null,
         oldConnection.arrowTypeStart,
@@ -77,7 +102,7 @@ export class Connector {
     } else {
       conn = new Connection(
         sock,
-        this.currentSocket,
+        this.#currentSocket,
         null,
         oldConnection.arrowTypeStart,
         oldConnection.arrowTypeEnd,
@@ -98,16 +123,17 @@ export class Connector {
     });
     conn.update();
     sock.addConnection(conn);
+    this.#currentSocket.addConnection(conn);
     this.#connect(conn);
   }
   connectAssociation(point, targetConnection) {
-    if (this.currentSocket instanceof FreeSocket) {
+    if (this.#currentSocket instanceof FreeSocket) {
       View.singleton.showAlertForConnectingFreeSocketAndPoint();
-      this.currentSocket = null;
+      this.#currentSocket = null;
       return false;
     } else {
       const conn = new Connection(
-        this.currentSocket,
+        this.#currentSocket,
         null,
         point,
         ArrowType.None,
@@ -115,61 +141,58 @@ export class Connector {
         true
       );
       targetConnection.connectedConnections.push(conn);
+      this.#currentSocket.addConnection(conn);
       this.#connect(conn);
+      View.singleton.addConnection(conn);
       return conn;
     }
   }
   connectSockets(sock) {
     if (
-      this.currentSocket instanceof FreeSocket &&
+      this.#currentSocket instanceof FreeSocket &&
       sock instanceof FreeSocket
     ) {
       View.singleton.showAlertForConnectingTwoFreeSockets();
-      this.currentSocket = null;
+      this.#currentSocket = null;
       sock.checkIfNeedsToBeDeleted();
       return false;
     } else {
-      const conn = new Connection(this.currentSocket, sock);
+      const conn = new Connection(this.#currentSocket, sock);
       sock.addConnection(conn);
+      this.#currentSocket.addConnection(conn);
       this.#connect(conn);
+      View.singleton.addConnection(conn);
       return conn;
     }
   }
   #connect(conn) {
-    this.currentSocket.addConnection(conn);
-    View.singleton.connections.push(conn);
-    this.currentSocket = null;
+    this.#currentSocket = null;
     const selection = window.getSelection();
     selection.removeAllRanges();
   }
 
-  reconnectFromThisUser(socket) {
-    if (
-      MovingConnection.singleton.currentConnection.outPoint !== null &&
-      this.currentSocket === null
-    ) {
+  reconnectFromThisUser(socket, point = null, targetConnection = null) {
+    if (point !== null && this.#currentSocket === socket) {
       const oldConnection = MovingConnection.singleton.currentConnection;
-      if (oldConnection.outSock === this.currentSocket) {
+      if (oldConnection.outSock === this.#currentSocket) {
         this.reconnectEdgeToEdge(
           oldConnection.id,
           EdgeEndType.Source,
-          MovingConnection.singleton.currentConnection.outPoint.connectionParent
-            .id,
-          MovingConnection.singleton.currentConnection.outPoint
+          targetConnection.id,
+          point
         );
-      } else if (oldConnection.inSock === this.currentSocket) {
+      } else if (oldConnection.inSock === this.#currentSocket) {
         this.reconnectEdgeToEdge(
           oldConnection.id,
           EdgeEndType.Target,
-          MovingConnection.singleton.currentConnection.outPoint.connectionParent
-            .id,
-          MovingConnection.singleton.currentConnection.outPoint
+          targetConnection.id,
+          point
         );
       }
-      this.reconnect(socket);
+      this.reconnect(socket, point, targetConnection);
     } else {
       const oldConnection = MovingConnection.singleton.currentConnection;
-      if (this.currentSocket === oldConnection.inSock) {
+      if (this.#currentSocket === oldConnection.inSock) {
         if (socket instanceof FreeSocket) {
           this.reconnectEdgeToSocket(
             oldConnection.id,
@@ -203,12 +226,11 @@ export class Connector {
         this.reconnect(socket);
         if (oldConnection.inSock instanceof FreeSocket) {
           oldConnection.inSock.destroyWithRemovingFromDB();
-        } else {
+        } else if (oldConnection.outSock instanceof FreeSocket) {
           oldConnection.outSock.destroyWithRemovingFromDB();
         }
       }
     }
-    this.reconnect(socket);
   }
 
   connectAssotionAsThisUser(point, targetConnection) {
@@ -238,11 +260,11 @@ export class Connector {
     MovingConnection.singleton.currentConnection = connection;
     switch (operationType) {
       case OperationType.ConnectEdgeToSocket:
-        socket = View.getFreeSocketById(json.freeSocketId);
+        socket = View.singleton.getFreeSocketById(json.freeSocketId);
         if (json.edgeEndType === EdgeEndType.Target) {
-          this.currentSocket = connection.inSock;
+          this.#currentSocket = connection.inSock;
         } else {
-          this.currentSocket = connection.outSock;
+          this.#currentSocket = connection.outSock;
         }
         this.reconnect(socket);
         break;
@@ -253,9 +275,9 @@ export class Connector {
           json.connectionPosition.y
         );
         if (json.edgeEndType === EdgeEndType.Target) {
-          this.currentSocket = connection.inSock;
+          this.#currentSocket = connection.inSock;
         } else {
-          this.currentSocket = connection.outSock;
+          this.#currentSocket = connection.outSock;
         }
         this.reconnect(socket);
         break;
@@ -263,10 +285,29 @@ export class Connector {
         const targetConnection = View.singleton.getConnectionById(
           json.targetEdgeId
         );
-        this.reconnectAssociation(
-          new Point(json.connectionPosition.x, json.connectionPosition.y),
-          targetConnection
-        );
+        if (json.edgeEndType === EdgeEndType.Target) {
+          this.#currentSocket = connection.inSock;
+          this.reconnect(
+            connection.inSock,
+            new ConnectingPoint(
+              json.position.x,
+              json.position.y,
+              targetConnection
+            ),
+            targetConnection
+          );
+        } else {
+          this.reconnect(
+            connection.outSock,
+            new ConnectingPoint(
+              json.position.x,
+              json.position.y,
+              targetConnection
+            ),
+            targetConnection
+          );
+          this.#currentSocket = connection.outSock;
+        }
         break;
     }
     window.dispatchEvent(new Event("viewupdate"));

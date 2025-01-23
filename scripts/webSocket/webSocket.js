@@ -1,6 +1,7 @@
 import { Connection } from "../connection.js";
 import { Connector } from "../connector.js";
 import { EdgeEndType } from "../enum/EdgeEndType.js";
+import { EdgeFieldType } from "../enum/EdgeFieldType.js";
 import { NodeFieldType } from "../enum/NodeFieldType.js";
 import { OperationType } from "../enum/OperationType.js";
 import { Point } from "../point.js";
@@ -62,9 +63,9 @@ export class WebSocketConnection {
     } else if (eventData.event_type === OperationType.AddSocket) {
       object.id = eventData.payload.Socket.Id;
       if (object.isReconnection) {
-        Connector.singleton.reconnectFromThisUser(object);
+        Connector.getInstance().reconnectFromThisUser(object);
       } else {
-        Connector.singleton.connectSocketsAsThisUser(object);
+        Connector.getInstance().connectSocketsAsThisUser(object);
       }
     } else if (
       eventData.event_type === OperationType.AddEdgeToEdge ||
@@ -107,7 +108,7 @@ export class WebSocketConnection {
         Node.fromJSONofAnotherUser(dataOfEvent.payload.Node);
         break;
       case OperationType.AddSocket:
-        FreeSocket.fromJSONofAnotherUser(dataOfEvent.payload.Socket)
+        FreeSocket.fromJSONofAnotherUser(dataOfEvent.payload.Socket);
         break;
       case OperationType.AddEdgeToNode:
         Connection.fromJSONofAnotherUser(
@@ -131,19 +132,19 @@ export class WebSocketConnection {
         FreeSocket.fromJSONofAnotherUser(dataOfEvent.payload.Socket);
         break;
       case OperationType.ConnectEdgeToNode:
-        Connector.singleton.reconnectFromAnotherUser(
+        Connector.getInstance().reconnectFromAnotherUser(
           dataOfEvent.payload,
           dataOfEvent.event_type
         );
         break;
       case OperationType.ConnectEdgeToEdge:
-        Connector.singleton.reconnectFromAnotherUser(
+        Connector.getInstance().reconnectFromAnotherUser(
           dataOfEvent.payload,
           dataOfEvent.event_type
         );
         break;
       case OperationType.ConnectEdgeToSocket:
-        Connector.singleton.reconnectFromAnotherUser(
+        Connector.getInstance().reconnectFromAnotherUser(
           dataOfEvent.payload,
           dataOfEvent.event_type
         );
@@ -158,19 +159,38 @@ export class WebSocketConnection {
         window.dispatchEvent(new Event("viewupdate"));
         break;
       case OperationType.ChangeColor:
-        const coloredEdge = View.singleton.getConnectionById(dataOfEvent.payload.elementId);
+        const coloredEdge = View.singleton.getConnectionById(
+          dataOfEvent.payload.elementId
+        );
         coloredEdge.changeColor(dataOfEvent.payload.color);
         break;
       case OperationType.Move:
-        const movingNode = View.singleton.getNodeById(dataOfEvent.payload.elementId);
-        movingNode.position = new Point(
-          dataOfEvent.payload.newPosition.x,
-          dataOfEvent.payload.newPosition.y
+        const movingNode = View.singleton.getNodeById(
+          dataOfEvent.payload.elementId
         );
-        movingNode.update();
+        if (movingNode === null) {
+          const movingSocket = View.singleton.getFreeSocketById(
+            dataOfEvent.payload.elementId
+          );
+          movingSocket.changePosition(
+            new Point(
+              dataOfEvent.payload.newPosition.x,
+              dataOfEvent.payload.newPosition.y
+            )
+          );
+        } else {
+          movingNode.position = new Point(
+            dataOfEvent.payload.newPosition.x,
+            dataOfEvent.payload.newPosition.y
+          );
+          movingNode.update();
+        }
+
         break;
       case OperationType.Scale:
-        const scaledNode = View.singleton.getNodeById(dataOfEvent.payload.elementId);
+        const scaledNode = View.singleton.getNodeById(
+          dataOfEvent.payload.elementId
+        );
         scaledNode.scaleNode(
           dataOfEvent.payload.size.width,
           dataOfEvent.payload.size.height
@@ -206,9 +226,25 @@ export class WebSocketConnection {
         );
         break;
       case OperationType.UpdateEdgeText:
+        const updatedTextEdge = View.singleton.getConnectionById(
+          dataOfEvent.payload.edgeId
+        );
+        switch (dataOfEvent.payload.edgeFieldType) {
+          case EdgeFieldType.Start:
+            updatedTextEdge.spanIn.textContent = dataOfEvent.payload.text;
+            break;
+          case EdgeFieldType.Center:
+            updatedTextEdge.spanCenter.textContent = dataOfEvent.payload.text;
+            break;
+          case EdgeFieldType.End:
+            updatedTextEdge.spanOut.textContent = dataOfEvent.payload.text;
+            break;
+        }
         break;
       case OperationType.UpdateNodeText:
-        const updatedNode = View.singleton.getNodeById(dataOfEvent.payload.nodeId);
+        const updatedNode = View.singleton.getNodeById(
+          dataOfEvent.payload.nodeId
+        );
         if (dataOfEvent.payload.nodeFieldType === NodeFieldType.Label) {
           updatedNode.name = dataOfEvent.payload.text;
         } else if (
@@ -258,9 +294,13 @@ export class WebSocketConnection {
         (item) => item.operationId === data.operationId
       );
       if (foundData === -1 || foundData === undefined) {
-        this.doAnotherUserAction(data.events[0]);
+        data.events.forEach((event) => {
+          this.doAnotherUserAction(event);
+        });
       } else {
-        this.completeTheOperationOfUser(data.events[0], foundData.element);
+        data.events.forEach((event) => {
+          this.completeTheOperationOfUser(event, foundData.element);
+        });
       }
     }
   }

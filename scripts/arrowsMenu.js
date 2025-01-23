@@ -352,17 +352,6 @@ export class ArrowsMenu {
     $(".menu").remove();
   }
 
-  //   ### Update Text of Edge (field_type: start, center, end)
-  // PATCH {{base_url}}/api/v1/diagrams/{{diagram_id}}/edge/text
-  // Content-Type: application/json
-  // Authorization: Bearer {{token}}
-
-  // {
-  //   "edge_id": "95e2c995-9a96-4bc6-8806-30fe855f0636",
-  //   "field_type": "start",
-  //   "text": "Updated Start Text"
-  // }
-
   #patchTextOfEdge(field_type, text) {
     //done
     const timestamp = Date.now();

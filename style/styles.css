@@ -86,6 +86,10 @@ svg.node-connection > path {
   opacity: 1;
 }
 
+.node-connection-socket:hover {
+  border: 3px solid red;
+}
+
 .node.selected > .node-connection-socket {
   opacity: 1;
 }
@@ -172,6 +176,7 @@ svg.node-connection > path {
 
 .click-el-hidden {
   display: none;
+  pointer-events: none;
 }
 
 .menu {
@@ -184,6 +189,10 @@ svg.node-connection > path {
   cursor: pointer;
   stroke-width: 10;
   opacity: 0;
+}
+
+.arrow.choosen {
+  opacity: 0.3;
 }
 
 #context-menu {

@@ -6,6 +6,7 @@ import { EdgeEndType } from "./enum/EdgeEndType.js";
 import { BaseOperationsURL } from "./consts/baseUrl.js";
 import { OperationType } from "./enum/OperationType.js";
 import { WebSocketConnection } from "./webSocket/webSocket.js";
+import { MovingConnection } from "./movingConnection.js";
 
 export class Socket {
   constructor(el) {
@@ -43,30 +44,33 @@ export class Socket {
 }
 
 export class NodeSocket extends Socket {
-  parent;
+  #parent;
   #type;
   constructor(el, parent = null, type = SocketType.Up, id = "") {
     super(el);
     this.id = id;
-    this.parent = parent;
+    this.#parent = parent;
     this.#type = type;
     this.el.addEventListener("mousedown", this.down.bind(this));
     $(this.el).on("mouseup", this.up.bind(this));
   }
+  get parent() {
+    return this.#parent;
+  }
   down(e) {
     e.preventDefault();
     e.stopPropagation();
-    if (Connector.singleton.currentSocket == null) {
-      Connector.singleton.currentSocket = this;
+    if (Connector.getInstance().currentSocket == null) {
+      Connector.getInstance().currentSocket = this;
       console.log("grabbed");
     } else {
-      Connector.singleton.connectSocketsAsThisUser(this);
+      Connector.getInstance().connectSocketsAsThisUser(this);
       console.log("connected");
     }
   }
   up(e) {
     if (View.singleton.connectionIsMoving) {
-      Connector.singleton.reconnectFromThisUser(this);
+      Connector.getInstance().reconnectFromThisUser(this);
     }
   }
   updateArrowsPositionInDB() {
@@ -74,18 +78,18 @@ export class NodeSocket extends Socket {
       const edge_end =
         item.inSock === this ? EdgeEndType.Source : EdgeEndType.Target;
       const pos = this.getAbsolutePosition();
-      Connector.singleton.reconnectEdgeToNode(
+      Connector.getInstance().reconnectEdgeToNode(
         item.id,
         edge_end,
-        this.parent.id,
+        this.#parent.id,
         pos
       );
     }
   }
   getAbsolutePosition() {
     return new Point(
-      this.parent.position.x + this.el.offsetLeft + this.el.offsetWidth / 2,
-      this.parent.position.y + this.el.offsetTop + this.el.offsetHeight / 2
+      this.#parent.position.x + this.el.offsetLeft + this.el.offsetWidth / 2,
+      this.#parent.position.y + this.el.offsetTop + this.el.offsetHeight / 2
     );
   }
   isUp() {
@@ -119,6 +123,7 @@ export class NodeSocket extends Socket {
 }
 
 export class FreeSocket extends Socket {
+  static movingSocket = null;
   static idSockNum = 0;
   #moveRequestCounter;
   constructor(point, id = "") {
@@ -146,8 +151,15 @@ export class FreeSocket extends Socket {
     super.removeConnection(conn);
     this.checkIfNeedsToBeDeleted();
   }
-  destroy() {
-    super.destroy();
+  destroy(isDeletingConnectionsInDBNeeded = true) {
+    if (isDeletingConnectionsInDBNeeded) {
+      super.destroy();
+    } else {
+      const conns = [...this.connections];
+      for (const c of conns) {
+        c.removeWithouthDeletingDataInDB();
+      }
+    }
     $(this.el).remove();
   }
   destroyWithRemovingFromDB() {
@@ -166,36 +178,56 @@ export class FreeSocket extends Socket {
       this.connections[i].disableClickEndEls();
     }
     View.singleton.isMouseDownOnFreeSocket = true;
+    FreeSocket.movingSocket = this;
   }
   up(e) {
     $(this.el).removeClass("moving");
     for (var i = 0; i < this.connections.length; i++) {
       this.connections[i].enableClickEndEls();
     }
-    if (this.#moveRequestCounter !== 100) {
-      View.singleton.moveAnyElementRequest(this.id, this.position);
-      this.#moveRequestCounter = 0;
+    if (Connector.getInstance().currentSocket === null) {
+      if (this.#moveRequestCounter !== 100) {
+        View.singleton.moveAnyElementRequest(this.id, this.position);
+        this.#moveRequestCounter = 0;
+      }
+    } else {
+      Connector.getInstance().connectSocketsAsThisUser(this);
     }
     View.singleton.isMouseDownOnFreeSocket = false;
+    if (View.singleton.connectionIsMoving) {
+      MovingConnection.singleton.deleteCurrentConnection();
+      View.singleton.resetAftermathOfMovingConnection();
+    }
+    FreeSocket.movingSocket = null;
   }
   move(e) {
     if (View.singleton.isMouseDownOnFreeSocket) {
       const navbar = document.getElementById("navbar");
       const navbarHeight = navbar ? navbar.offsetHeight : 0;
-      this.position.set(
-        e.pageX - View.singleton.position.x,
-        e.pageY - View.singleton.position.y - navbarHeight
-      );
-      this.setStyleTopLeft();
-      for (var i = 0; i < this.connections.length; i++) {
-        this.connections[i].update();
-      }
+      this.changePosition(new Point(e.pageX - 2, e.pageY - navbarHeight - 2));
       this.#moveRequestCounter++;
       if (this.#moveRequestCounter >= 100) {
         View.singleton.moveAnyElementRequest(this.id, this.position);
         this.#moveRequestCounter = 0;
       }
     }
+  }
+  changePosition(point) {
+    this.position.set(
+      point.x - View.singleton.position.x,
+      point.y - View.singleton.position.y
+    );
+    this.setStyleTopLeft();
+    for (var i = 0; i < this.connections.length; i++) {
+      this.connections[i].update();
+    }
+  }
+  changePositionWithRequestToDB(point) {
+    const navbar = document.getElementById("navbar");
+    const navbarHeight = navbar ? navbar.offsetHeight : 0;
+    point.y -= navbarHeight;
+    this.changePosition(point);
+    View.singleton.moveAnyElementRequest(this.id, this.position);
   }
   setStyleTopLeft() {
     this.el.style.top = this.position.y - this.el.offsetHeight / 2 + "px";
