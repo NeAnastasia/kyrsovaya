@@ -1,7 +1,19 @@
 export class MovingConnection {
-  static singleton = new MovingConnection();
+  static #instance;
   constructor() {
+    if (MovingConnection.#instance) {
+      throw new Error(
+        "Use MovingConnection.getInstance() to get the singleton instance."
+      );
+    }
+    MovingConnection.#instance = this;
     this.currentConnection = null;
+  }
+  static getInstance() {
+    if (!MovingConnection.#instance) {
+      MovingConnection.#instance = new MovingConnection();
+    }
+    return MovingConnection.#instance;
   }
   checkIfConnectionIsConnectingToItself(targetLine) {
     return (
@@ -18,8 +30,5 @@ export class MovingConnection {
   deleteCurrentConnection() {
     this.currentConnection.removeWithouthDeletingDataInDB();
     this.currentConnection = null;
-  }
-  checkIfCurrentConnectionIsSockPointConnection() {
-    return this.currentConnection.outPoint !== null;
   }
 }

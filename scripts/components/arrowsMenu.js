@@ -1,16 +1,26 @@
-import { BaseOperationsURL } from "./consts/baseUrl.js";
-import { ArrowType } from "./enum/ArrowType.js";
-import { EdgeFieldType } from "./enum/EdgeFieldType.js";
-import { OperationType } from "./enum/OperationType.js";
-import { View } from "./view.js";
-import { WebSocketConnection } from "./webSocket/webSocket.js";
+import { BaseOperationsURL } from "../consts/baseUrl.js";
+import { ArrowType } from "../enum/ArrowType.js";
+import { EdgeFieldType } from "../enum/EdgeFieldType.js";
+import { OperationType } from "../enum/OperationType.js";
+import { View } from "../elements/view.js";
+import { WebSocketConnection } from "../api/webSocket/webSocket.js";
+import {
+  patchTextOfEdge,
+  patchUpdatingColorOfEdge,
+} from "../api/http/connectionApiRequests.js";
 
 export class ArrowsMenu {
-  static singleton = new ArrowsMenu();
+  static #instance;
   #connection;
   #el;
 
   constructor() {
+    if (ArrowsMenu.#instance) {
+      throw new Error(
+        "Use ArrowsMenu.getInstance() to get the singleton instance."
+      );
+    }
+    ArrowsMenu.#instance = this;
     this.#connection = null;
     this.#el =
       $(`<div class="menu d-flex flex-column justify-content-center" id="menu" tabindex="0">
@@ -98,8 +108,15 @@ export class ArrowsMenu {
     </div>`)[0];
   }
 
+  static getInstance() {
+    if (!ArrowsMenu.#instance) {
+      ArrowsMenu.#instance = new ArrowsMenu();
+    }
+    return ArrowsMenu.#instance;
+  }
+
   appearing(connection, left, top) {
-    View.singleton.removeAlert();
+    View.getInstance().removeAlert();
     this.#connection = connection;
     $(this.#el).appendTo("#view-area")[0];
     $(this.#el).on("blur", (e) => {
@@ -206,9 +223,11 @@ export class ArrowsMenu {
       this.#connection.spanIn.textContent = $(
         document.getElementById("input-cardinal-number-1")
       ).val();
-      this.#patchTextOfEdge(
+      patchTextOfEdge(
         EdgeFieldType.Start,
-        this.#connection.spanIn.textContent
+        this.#connection.id,
+        this.#connection.spanIn.textContent,
+        this.#connection
       );
     });
 
@@ -216,9 +235,11 @@ export class ArrowsMenu {
       this.#connection.spanCenter.textContent = $(
         document.getElementById("input-cardinal-number-2")
       ).val();
-      this.#patchTextOfEdge(
+      patchTextOfEdge(
         EdgeFieldType.Center,
-        this.#connection.spanCenter.textContent
+        this.#connection.id,
+        this.#connection.spanCenter.textContent,
+        this.#connection
       );
     });
 
@@ -226,9 +247,11 @@ export class ArrowsMenu {
       this.#connection.spanOut.textContent = $(
         document.getElementById("input-cardinal-number-3")
       ).val();
-      this.#patchTextOfEdge(
+      patchTextOfEdge(
         EdgeFieldType.End,
-        this.#connection.spanOut.textContent
+        this.#connection.id,
+        this.#connection.spanOut.textContent,
+        this.#connection
       );
     });
 
@@ -267,7 +290,7 @@ export class ArrowsMenu {
 
     $(document.getElementById("color-input")).on("change", (e) => {
       this.#connection.changeColor(e.target.value);
-      this.#connection.patchUpdatingColorOfEdge();
+      patchUpdatingColorOfEdge(this.#connection.id, this.#connection.color, this.#connection);
     });
     this.dropdownMenu.forEach((element) => {
       $(element).on("click", (e) => {
@@ -350,40 +373,5 @@ export class ArrowsMenu {
   }
   #deleteMenu() {
     $(".menu").remove();
-  }
-
-  #patchTextOfEdge(field_type, text) {
-    //done
-    const timestamp = Date.now();
-    WebSocketConnection.singleton.sentRequests.push({
-      timestamp: timestamp,
-      operation: OperationType.UpdateEdgeText,
-    });
-    const id = window.location.hash.split("/").pop();
-    $.ajax({
-      url: BaseOperationsURL + "/api/v1/diagrams/" + id + "/edge/text",
-      method: "PATCH",
-      contentType: "application/json",
-      headers: {
-        Authorization: "Bearer " + localStorage.getItem("token"),
-      },
-      data: JSON.stringify({
-        edge_id: this.#connection.id,
-        field_type: field_type,
-        text: text,
-      }),
-      success: (response) => {
-        console.log("Update text of edge: ", response);
-        WebSocketConnection.singleton.removeRequest(
-          timestamp,
-          OperationType.UpdateEdgeText,
-          response.operationId,
-          this
-        );
-      },
-      error: (jqXHR, textStatus, errorThrown) => {
-        console.error("Updating text of edge:", textStatus, errorThrown);
-      },
-    });
   }
 }

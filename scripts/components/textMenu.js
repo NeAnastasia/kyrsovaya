@@ -1,10 +1,16 @@
-import { View } from "./view.js";
+import { View } from "../elements/view.js";
 
 export class TextMenu {
-  static singleton = new TextMenu();
+  static #instance;
   #el;
   #textEl;
   constructor() {
+    if (TextMenu.#instance) {
+      throw new Error(
+        "Use TextMenu.getInstance() to get the singleton instance."
+      );
+    }
+    TextMenu.#instance = this;
     this.#el = $(`<div
   class="text-menu d-flex flex-column justify-content-center"
   id="text-menu"
@@ -39,8 +45,14 @@ export class TextMenu {
 </div>`)[0];
     this.#textEl = null;
   }
+  static getInstance() {
+    if (!TextMenu.#instance) {
+      TextMenu.#instance = new TextMenu();
+    }
+    return TextMenu.#instance;
+  }
   appearing(textEl) {
-    View.singleton.removeAlert();
+    View.getInstance().removeAlert();
     this.#textEl = textEl;
     $(this.#el).appendTo(document.body);
     document.querySelector("#checkbox-bold").checked = false;

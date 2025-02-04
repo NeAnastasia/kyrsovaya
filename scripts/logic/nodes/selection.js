@@ -1,7 +1,19 @@
 export class Selection {
-  static singleton = new Selection();
+  static #instance;
   constructor() {
+    if (Selection.#instance) {
+      throw new Error(
+        "Use Selection.getInstance() to get the singleton instance."
+      );
+    }
+    Selection.#instance = this;
     this.els = [];
+  }
+  static getInstance() {
+    if (!Selection.#instance) {
+      Selection.#instance = new Selection();
+    }
+    return Selection.#instance;
   }
   add(node) {
     this.els.push(node);

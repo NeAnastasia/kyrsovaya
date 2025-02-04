@@ -1,5 +1,5 @@
 export const NodeFieldType = {
     Label: "label",
     Content1: "content1",
-    Content21: "content2"
+    Content2: "content2"
   };

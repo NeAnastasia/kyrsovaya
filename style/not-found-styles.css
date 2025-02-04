@@ -1,0 +1,41 @@
+.not-found-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+    background-color: white;
+    color: #333;
+    text-align: center;
+}
+.not-found-container {
+    max-width: 600px;
+    padding: 20px;
+    border: 2px dashed #30619f;
+    border-radius: 10px;
+    background-color: #e9f3ff;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+.not-found-h1 {
+    font-size: 48px;
+    margin: 0;
+    color: #30619f;
+}
+.not-found-p {
+    font-size: 20px;
+    margin: 10px 0;
+}
+.not-found-button {
+    display: inline-block;
+    margin-top: 20px;
+    padding: 10px 20px;
+    font-size: 18px;
+    color: #fff;
+    background-color: #346cb0;
+    text-decoration: none;
+    border-radius: 5px;
+    transition: background-color 0.3s;
+}
+.not-found-button:hover {
+    background-color: #30619f;
+}

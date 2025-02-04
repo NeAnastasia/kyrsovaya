@@ -1,14 +1,23 @@
-import { Draggable } from "./draggable.js";
+import { Draggable } from "../logic/nodes/draggable.js";
 import { NodeSocket } from "./socket.js";
-import { Selection } from "./selection.js";
+import { Selection } from "../logic/nodes/selection.js";
 import { View } from "./view.js";
-import { TextMenu } from "./textMenu.js";
-import { NodeType } from "./enum/NodeType.js";
-import { SocketType } from "./enum/SocketType.js";
-import { Point } from "./point.js";
-import { BaseOperationsURL } from "./consts/baseUrl.js";
-import { WebSocketConnection } from "./webSocket/webSocket.js";
-import { OperationType } from "./enum/OperationType.js";
+import { TextMenu } from "../components/textMenu.js";
+import { NodeType } from "../enum/NodeType.js";
+import { SocketType } from "../enum/SocketType.js";
+import { Point } from "../utils/point.js";
+import { BaseOperationsURL } from "../consts/baseUrl.js";
+import { OperationType } from "../enum/OperationType.js";
+import { WebSocketConnection } from "../api/webSocket/webSocket.js";
+import {
+  moveAnyElementRequest,
+  removeElementRequest,
+} from "../api/http/elementsApiRequests.js";
+import {
+  scaleElementRequest,
+  updateTextOfElementRequest,
+} from "../api/http/nodeApiRequests.js";
+import { NodeFieldType } from "../enum/NodeFieldType.js";
 
 export class Node {
   static idC = 0;
@@ -150,9 +159,9 @@ export class Node {
         }
       }
       if ($(".text-menu").length === 0) {
-        TextMenu.singleton.appearing(target);
+        TextMenu.getInstance().appearing(target);
       } else {
-        TextMenu.singleton.changeObject(target);
+        TextMenu.getInstance().changeObject(target);
       }
       $(target).attr("contenteditable", true);
       target.focus();
@@ -160,7 +169,7 @@ export class Node {
     $(allTextElements).on("focusout", (e) => {
       this.isDblClick = false;
       $(e.target).attr("contenteditable", false);
-      window.dispatchEvent(new Event("viewupdate"));
+      
     });
     $(this.label).on("input", (e) => {
       this.#onRename(e);
@@ -192,11 +201,11 @@ export class Node {
   }
   #onNodeMove(e, delta) {
     if (this.#pressType == 0) {
-      Selection.singleton.moveAll(delta);
+      Selection.getInstance().moveAll(delta);
     } else {
       this.#width = Math.max(this.#opos.x + delta.x, 40);
       this.#height = Math.max(this.#opos.y + delta.y, 40);
-      this.#scaleElementRequest();
+      scaleElementRequest(this.id, this.#width, this.#height, this);
       this.update();
     }
   }
@@ -227,17 +236,17 @@ export class Node {
     }
     this.#pressType = 0;
     if (!e.shiftKey) {
-      Selection.singleton.clear();
+      Selection.getInstance().clear();
     } else {
       e.preventDefault();
     }
-    Selection.singleton.add(this);
-    Selection.singleton.pressAll(e);
+    Selection.getInstance().add(this);
+    Selection.getInstance().pressAll(e);
     this.el.classList.add("selected");
   }
   #onNodeReleased(e) {
     this.#opos = null;
-    window.dispatchEvent(new Event("viewupdate"));
+    
     if (this.#moveRequestCounter !== 0) {
       this.#moveElementRequest();
       this.#moveRequestCounter = 0;
@@ -263,14 +272,14 @@ export class Node {
     $(this.el).remove();
   }
   remove() {
-    View.singleton.removeElementRequest(this.id);
+    removeElementRequest(this.id, this);
     this.removeHTMLElement();
   }
   destroy() {
     for (const key in this.sockets) {
       this.sockets[key].destroy();
     }
-    window.dispatchEvent(new Event("viewupdate"));
+    
   }
   scaleNode(width, height) {
     this.#width = width;
@@ -279,7 +288,7 @@ export class Node {
   }
   #onRename(e) {
     this.name = this.label.innerHTML;
-    this.updateTextOfElementRequest("label", this.name);
+    updateTextOfElementRequest(this.id, NodeFieldType.Label, this.name, this);
     this.update();
   }
   getSocketByPosition(x, y) {
@@ -290,113 +299,16 @@ export class Node {
       }) || null
     ); // Возвращаем найденный сокет или null, если не найден
   }
-  updateTextOfElementRequest(field_type, text) {
-    console.log("Update text: ", field_type, text);
-    const timestamp = Date.now()
-    WebSocketConnection.singleton.sentRequests.push({
-      timestamp: timestamp,
-      operation: OperationType.UpdateNodeText,
-    });
-    //done
-    const id = window.location.hash.split("/").pop();
-    $.ajax({
-      url: BaseOperationsURL + "/api/v1/diagrams/" + id + "/node/text",
-      method: "PATCH",
-      contentType: "application/json",
-      headers: {
-        Authorization: "Bearer " + localStorage.getItem("token"),
-      },
-      data: JSON.stringify({
-        node_id: this.id,
-        field_type: field_type,
-        text: text,
-      }),
-      success: (response) => {
-        console.log("Update text: ", response);
-        WebSocketConnection.singleton.removeRequest(
-          timestamp,
-          OperationType.UpdateNodeText,
-          response.operationId,
-          this
-        );
-      },
-      error: (jqXHR, textStatus, errorThrown) => {
-        console.error("Updating text failed:", textStatus, errorThrown);
-      },
-    });
-  }
   #moveElementRequest() {
     for (const key in this.sockets) {
       this.sockets[key].updateArrowsPositionInDB();
     }
-    View.singleton.moveAnyElementRequest(this.id, this.position);
-  }
-  #scaleElementRequest() {
-    //done
-    const timestamp = Date.now()
-    WebSocketConnection.singleton.sentRequests.push({
-      timestamp: timestamp,
-      operation: OperationType.Scale,
-    });
-    const id = window.location.hash.split("/").pop();
-    $.ajax({
-      url: BaseOperationsURL + "/api/v1/diagrams/" + id + "/node/scale",
-      method: "PATCH",
-      contentType: "application/json",
-      headers: {
-        Authorization: "Bearer " + localStorage.getItem("token"),
-      },
-      data: JSON.stringify({
-        node_id: this.id,
-        new_size: {
-          width: this.#width,
-          height: this.#height,
-        },
-      }),
-      success: (response) => {
-        console.log("Scale element: ", response);
-        WebSocketConnection.singleton.removeRequest(
-          timestamp,
-          OperationType.Scale,
-          response.operationId,
-          this
-        );
-      },
-      error: (jqXHR, textStatus, errorThrown) => {
-        console.error("Updating scale failed:", textStatus, errorThrown);
-      },
-    });
-  }
-  addElementRequest() {
-    const timestamp = Date.now()
-    WebSocketConnection.singleton.sentRequests.push({
-      timestamp: timestamp,
-      operation: OperationType.AddNode,
-    });
-    //done
-    const id = window.location.hash.split("/").pop();
-    $.ajax({
-      url: BaseOperationsURL + "/v1/diagram/" + id + "/node/add",
-      method: "POST",
-      contentType: "application/json",
-      headers: {
-        Authorization: "Bearer " + localStorage.getItem("token"),
-      },
-      data: JSON.stringify(this.toJSON()),
-      success: (response) => {
-        console.log("Add element", response);
-        WebSocketConnection.singleton.removeRequest(timestamp, OperationType.AddNode, response.operationId, this)
-        //location.reload();
-      },
-      error: (jqXHR, textStatus, errorThrown) => {
-        console.error("Adding element failed:", textStatus, errorThrown);
-      },
-    });
+    moveAnyElementRequest(this.id, this.position, this);
   }
   static fromJSONofAnotherUser(json) {
     const node = this.fromJSON(json);
     node.id = json.Id;
-    window.dispatchEvent(new Event("viewupdate"));
+    
   }
   static fromJSON(json) {
     const tname = json.NodeType || NodeType.Default;
@@ -447,7 +359,7 @@ export class Node {
     }
     node.#width = json.width !== undefined ? json.width : node.#width;
     node.#height = json.height !== undefined ? json.height : node.#height;
-    View.singleton.addNode(node);
+    View.getInstance().addNode(node);
     node.update();
     return node;
   }
@@ -564,8 +476,13 @@ class ObjectNode extends Node {
     this.textContentEl.html(this.textContent1);
     this.textContentEl.on("input", () => {
       this.textContent1 = this.textContentEl.html();
-      this.updateTextOfElementRequest("content1", this.textContent1);
-      window.dispatchEvent(new Event("viewupdate"));
+      updateTextOfElementRequest(
+        this.id,
+        NodeFieldType.Content1,
+        this.textContent1,
+        this
+      );
+      
     });
     this.update();
   }
@@ -656,14 +573,24 @@ class ClassNode extends Node {
     $(this.textContentEl1).on("input", () => {
       this.textContent1 = this.textContentEl1.html();
       this.update();
-      this.updateTextOfElementRequest("content1", this.textContent1);
-      window.dispatchEvent(new Event("viewupdate"));
+      updateTextOfElementRequest(
+        this.id,
+        NodeFieldType.Content1,
+        this.textContent1,
+        this
+      );
+      
     });
     $(this.textContentEl2).on("input", () => {
       this.textContent2 = this.textContentEl2.html();
       this.update();
-      this.updateTextOfElementRequest("content2", this.textContent2);
-      window.dispatchEvent(new Event("viewupdate"));
+      updateTextOfElementRequest(
+        this.id,
+        NodeFieldType.Content2,
+        this.textContent2,
+        this
+      );
+      
     });
     this.container = $(this.el).find(".node-inner");
     this.update();

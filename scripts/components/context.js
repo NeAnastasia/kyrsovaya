@@ -1,6 +1,8 @@
-import { View } from "./view.js";
-import { Node } from "./node.js";
-import { Point } from "./point.js";
+import { View } from "../elements/view.js";
+import { Node } from "../elements/node.js";
+import { Point } from "../utils/point.js";
+import { getNavbarHeight } from "../utils/helpers.js";
+import { addElementRequest } from "../api/http/nodeApiRequests.js";
 
 export class ContextItem {
   #name;
@@ -21,7 +23,7 @@ export class ContextItem {
     this.#nameEl = this.#el.find("div.context-item.name");
     this.#parent.container.append(this.#el);
     this.#el.on("click", (e) => {
-      const r = View.singleton.el.getBoundingClientRect();
+      const r = View.getInstance().el.getBoundingClientRect();
       var alert = $(
         `<div class="alert alert-info alert-click" role="alert">
           Нажмите на место, куда хотите поместить объект.
@@ -36,7 +38,7 @@ export class ContextItem {
           y: e.pageY - r.top,
         };
         const node = Node.fromJSON(data);
-        node.addElementRequest();
+        addElementRequest(node.toJSON(), node);
         $(".alert-info").remove();
       });
     });
@@ -81,9 +83,7 @@ export class ContextMenu {
     this.#container = this.#el.find("div.context-menu-container");
     this.#titleEl = this.#el.find("div.context-menu-title");
     this.refreshList();
-    const navbar = document.getElementById("navbar");
-    const navbarHeight = navbar ? navbar.offsetHeight : 0;
-    this.#el.css('top', navbarHeight);
+    this.#el.css("top", getNavbarHeight());
     this.#el.appendTo(document.body);
   }
   get title() {

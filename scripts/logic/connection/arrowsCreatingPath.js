@@ -1,16 +1,28 @@
-import { Point } from "./point.js";
-import { FreeSocket, NodeSocket } from "./socket.js";
+import { Point } from "../../utils/point.js";
+import { FreeSocket, NodeSocket } from "../../elements/socket.js";
 
 export class ArrowsCreatingPath {
-  static singleton = new ArrowsCreatingPath();
+  static #instance;
   #arrowLines;
   #arrowIndent;
   #isDashed;
 
   constructor() {
+    if (ArrowsCreatingPath.#instance) {
+      throw new Error(
+        "Use ArrowsCreatingPath.getInstance() to get the singleton instance."
+      );
+    }
+    ArrowsCreatingPath.#instance = this;
     this.#arrowLines = [];
     this.#arrowIndent = 20;
     this.#isDashed = false;
+  }
+  static getInstance() {
+    if (!ArrowsCreatingPath.#instance) {
+      ArrowsCreatingPath.#instance = new ArrowsCreatingPath();
+    }
+    return ArrowsCreatingPath.#instance;
   }
   #createSVGLine(obj) {
     let el = document.createElementNS("http://www.w3.org/2000/svg", "line");

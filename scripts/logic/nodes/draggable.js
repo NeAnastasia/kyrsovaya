@@ -1,6 +1,6 @@
-import { View } from "./view.js";
-import { Point } from "./point.js";
-import { FreeSocket } from "./socket.js";
+import { FreeSocket } from "../../elements/socket.js";
+import { View } from "../../elements/view.js";
+import { Point } from "../../utils/point.js";
 
 export class Draggable {
   #mouseDown;
@@ -32,7 +32,7 @@ export class Draggable {
     ) {
       return;
     }
-    if (!View.singleton.nodes.find((node) => node.el === this.el).isDblClick) {
+    if (!View.getInstance().nodes.find((node) => node.el === this.el).isDblClick) {
       e.preventDefault();
     }
     this._sp = new Point(e.pageX, e.pageY);

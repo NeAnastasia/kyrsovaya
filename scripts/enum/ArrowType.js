@@ -10,7 +10,6 @@ export const ArrowType = {
   Rhombus: "rhombus",
 };
 
-// Словарь с SVG-строками
 export const ArrowSVG = {
   [ArrowType.None]: "",
   [ArrowType.DefaultEnd]: '<polyline points="0 0, 10 3.5, 0 7" fill="none" stroke="#000"/>',

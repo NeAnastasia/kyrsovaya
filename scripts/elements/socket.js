@@ -1,12 +1,15 @@
-import { Connector } from "./connector.js";
-import { SocketType } from "./enum/SocketType.js";
+import { Connector } from "../logic/connection/connector.js";
+import { SocketType } from "../enum/SocketType.js";
 import { View } from "./view.js";
-import { Point } from "./point.js";
-import { EdgeEndType } from "./enum/EdgeEndType.js";
-import { BaseOperationsURL } from "./consts/baseUrl.js";
-import { OperationType } from "./enum/OperationType.js";
-import { WebSocketConnection } from "./webSocket/webSocket.js";
-import { MovingConnection } from "./movingConnection.js";
+import { Point } from "../utils/point.js";
+import { EdgeEndType } from "../enum/EdgeEndType.js";
+import { BaseOperationsURL } from "../consts/baseUrl.js";
+import { OperationType } from "../enum/OperationType.js";
+import { MovingConnection } from "../logic/connection/movingConnection.js";
+import { getNavbarHeight } from "../utils/helpers.js";
+import { WebSocketConnection } from "../api/webSocket/webSocket.js";
+import { moveAnyElementRequest, removeElementRequest } from "../api/http/elementsApiRequests.js";
+import { reconnectEdgeToNode } from "../api/http/connectionApiRequests.js";
 
 export class Socket {
   constructor(el) {
@@ -69,7 +72,7 @@ export class NodeSocket extends Socket {
     }
   }
   up(e) {
-    if (View.singleton.connectionIsMoving) {
+    if (View.getInstance().connectionIsMoving) {
       Connector.getInstance().reconnectFromThisUser(this);
     }
   }
@@ -78,11 +81,12 @@ export class NodeSocket extends Socket {
       const edge_end =
         item.inSock === this ? EdgeEndType.Source : EdgeEndType.Target;
       const pos = this.getAbsolutePosition();
-      Connector.getInstance().reconnectEdgeToNode(
+      reconnectEdgeToNode(
         item.id,
         edge_end,
         this.#parent.id,
-        pos
+        pos,
+        item
       );
     }
   }
@@ -137,12 +141,12 @@ export class FreeSocket extends Socket {
     this.#moveRequestCounter = 0;
     this.position = point;
     this.position.set(
-      point.x - View.singleton.position.x,
-      point.y - View.singleton.position.y
+      point.x - View.getInstance().position.x,
+      point.y - View.getInstance().position.y
     );
     this.setStyleTopLeft();
     this.el.setAttribute("id", this.id);
-    View.singleton.freeSockets.push(this);
+    View.getInstance().freeSockets.push(this);
     this.el.addEventListener("mousedown", this.down.bind(this));
     this.el.addEventListener("mouseup", this.up.bind(this));
     this.el.addEventListener("mousemove", this.move.bind(this));
@@ -164,12 +168,12 @@ export class FreeSocket extends Socket {
   }
   destroyWithRemovingFromDB() {
     this.destroy();
-    View.singleton.removeElementRequest(this.id);
+    removeElementRequest(this.id, this);
   }
   checkIfNeedsToBeDeleted() {
     if (this.connections.length == 0) {
       $(this.el).remove();
-      View.singleton.removeFreeSocket(this);
+      View.getInstance().removeFreeSocket(this);
     }
   }
   down(e) {
@@ -177,7 +181,7 @@ export class FreeSocket extends Socket {
     for (var i = 0; i < this.connections.length; i++) {
       this.connections[i].disableClickEndEls();
     }
-    View.singleton.isMouseDownOnFreeSocket = true;
+    View.getInstance().isMouseDownOnFreeSocket = true;
     FreeSocket.movingSocket = this;
   }
   up(e) {
@@ -187,35 +191,35 @@ export class FreeSocket extends Socket {
     }
     if (Connector.getInstance().currentSocket === null) {
       if (this.#moveRequestCounter !== 100) {
-        View.singleton.moveAnyElementRequest(this.id, this.position);
+        moveAnyElementRequest(this.id, this.position, this);
         this.#moveRequestCounter = 0;
       }
     } else {
       Connector.getInstance().connectSocketsAsThisUser(this);
     }
-    View.singleton.isMouseDownOnFreeSocket = false;
-    if (View.singleton.connectionIsMoving) {
-      MovingConnection.singleton.deleteCurrentConnection();
-      View.singleton.resetAftermathOfMovingConnection();
+    View.getInstance().isMouseDownOnFreeSocket = false;
+    if (View.getInstance().connectionIsMoving) {
+      MovingConnection.getInstance().deleteCurrentConnection();
+      View.getInstance().resetAftermathOfMovingConnection();
     }
     FreeSocket.movingSocket = null;
   }
   move(e) {
-    if (View.singleton.isMouseDownOnFreeSocket) {
-      const navbar = document.getElementById("navbar");
-      const navbarHeight = navbar ? navbar.offsetHeight : 0;
-      this.changePosition(new Point(e.pageX - 2, e.pageY - navbarHeight - 2));
+    if (View.getInstance().isMouseDownOnFreeSocket) {
+      this.changePosition(
+        new Point(e.pageX - 2, e.pageY - getNavbarHeight() - 2)
+      );
       this.#moveRequestCounter++;
       if (this.#moveRequestCounter >= 100) {
-        View.singleton.moveAnyElementRequest(this.id, this.position);
+        moveAnyElementRequest(this.id, this.position, this);
         this.#moveRequestCounter = 0;
       }
     }
   }
   changePosition(point) {
     this.position.set(
-      point.x - View.singleton.position.x,
-      point.y - View.singleton.position.y
+      point.x - View.getInstance().position.x,
+      point.y - View.getInstance().position.y
     );
     this.setStyleTopLeft();
     for (var i = 0; i < this.connections.length; i++) {
@@ -223,11 +227,9 @@ export class FreeSocket extends Socket {
     }
   }
   changePositionWithRequestToDB(point) {
-    const navbar = document.getElementById("navbar");
-    const navbarHeight = navbar ? navbar.offsetHeight : 0;
-    point.y -= navbarHeight;
+    point.y -= getNavbarHeight();
     this.changePosition(point);
-    View.singleton.moveAnyElementRequest(this.id, this.position);
+    moveAnyElementRequest(this.id, this.position, this);
   }
   setStyleTopLeft() {
     this.el.style.top = this.position.y - this.el.offsetHeight / 2 + "px";
@@ -251,44 +253,7 @@ export class FreeSocket extends Socket {
 
   static fromJSON(json) {
     const socket = new FreeSocket(new Point(json.x, json.y), json.Id);
-    View.singleton.addFreeSocket(socket);
+    View.getInstance().addFreeSocket(socket);
     return socket;
-  }
-  addSocketRequest(isReconnection = false) {
-    const timestamp = Date.now();
-    WebSocketConnection.singleton.sentRequests.push({
-      timestamp: timestamp,
-      operation: OperationType.AddSocket,
-    });
-    //done
-    const diagramId = window.location.hash.split("/").pop();
-    $.ajax({
-      url: BaseOperationsURL + "/v1/diagram/" + diagramId + "/socket/add",
-      method: "POST",
-      contentType: "application/json",
-      headers: {
-        Authorization: "Bearer " + localStorage.getItem("token"),
-      },
-      data: JSON.stringify({
-        position: {
-          x: this.position.x,
-          y: this.position.y,
-        },
-      }),
-      success: (response) => {
-        console.log("Add socket", response);
-        WebSocketConnection.singleton.removeRequest(
-          timestamp,
-          OperationType.AddSocket,
-          response.operationId,
-          this,
-          isReconnection
-        );
-      },
-      error: (jqXHR, textStatus, errorThrown) => {
-        console.error("Adding socket failed:", textStatus, errorThrown);
-        return false;
-      },
-    });
   }
 }
