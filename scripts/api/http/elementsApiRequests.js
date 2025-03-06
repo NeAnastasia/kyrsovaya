@@ -1,6 +1,6 @@
-import { BaseOperationsURL } from "../../consts/baseUrl";
-import { OperationType } from "../../enum/OperationType";
-import { WebSocketConnection } from "../webSocket/webSocket";
+import { BaseOperationsURL } from "../../consts/baseUrl.js";
+import { OperationType } from "../../enum/OperationType.js";
+import { WebSocketConnection } from "../webSocket/webSocket.js";
 
 const elementSecondPartURL =
   "/v1/diagrams/" + window.location.hash.split("/").pop() + "/element";

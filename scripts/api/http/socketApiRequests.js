@@ -1,6 +1,6 @@
-import { BaseOperationsURL } from "../../consts/baseUrl";
-import { OperationType } from "../../enum/OperationType";
-import { WebSocketConnection } from "../webSocket/webSocket";
+import { BaseOperationsURL } from "../../consts/baseUrl.js";
+import { OperationType } from "../../enum/OperationType.js";
+import { WebSocketConnection } from "../webSocket/webSocket.js";
 
 export const addSocketRequest = (position, isReconnection = false, socket) => {
     const timestamp = Date.now();
